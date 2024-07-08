@@ -1,0 +1,16 @@
+<APIProxy revision="2" name="test-call">
+    <DisplayName></DisplayName>
+    <Description>jenkins git: 21dac8e2 et02-jenkins01</Description>
+    <CreatedAt>1669811176100</CreatedAt>
+    <LastModifiedAt>1669811176100</LastModifiedAt>
+    <BasePaths>/test-call</BasePaths>
+    <Policies>
+        <Policy>OAuth-v20-1</Policy>
+    </Policies>
+    <ProxyEndpoints>
+        <ProxyEndpoint>default</ProxyEndpoint>
+    </ProxyEndpoints>
+    <TargetEndpoints>
+        <TargetEndpoint>default</TargetEndpoint>
+    </TargetEndpoints>
+</APIProxy>

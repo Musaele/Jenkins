@@ -1,0 +1,115 @@
+{
+	"info": {
+		"_postman_id": "80e1c7e2-c6d9-46a1-b74f-0470e1e2caa1",
+		"name": "NoTargetProxy_GET_Req_Pass",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "NoTargetProxy1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"//Authorization is present",
+							"pm.test(\"1. To verify if Authorization is presentin Header\", function () {",
+							"    pm.request.to.have.header(\"Authorization\");",
+							"});",
+							"//Check request is successful",
+							"pm.test(\"2. To verify if request is successful \", function () {",
+							"pm.expect(pm.response.code).to.be.oneOf([200,201,202]);",
+							"});",
+							"",
+							"//Check Body",
+							"pm.test(\"3. To verify if Response is valid and have a body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    //pm.response.to.be.json;",
+							"});",
+							"",
+							"//Verify 404 Response Code",
+							"",
+							"pm.test(\"4. 404 Resource not found\", ()=>{",
+							"    pm.sendRequest({",
+							"    url: 'http://immekhan-prod.apigee.net/notargetproxyy/string?jsonstring=%7B%20%20%20%22FunctionName%22%3A%22IsPorjectCreated%22%2C%20%20%20%22Flag%22%3A%22false%22%2C%20%20%20%22lst%22%3A%20%5B%5D%20%20%7D',",
+							"    method: 'GET',",
+							"    header: {\"Authorization\": \"Bearer \"+ pm.variables.get(\"accessToken\"),",
+							"   'Content-Type':'application/json'},",
+							"    },",
+							"    function (error, response) {",
+							"    console.log(response);",
+							"    pm.expect(response).to.have.property('code', 404);",
+							"    pm.expect(response).to.have.property('status', 'Not Found');",
+							"});",
+							"})",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"let tokenUrl = 'https://immekhan-test.apigee.net/v1/token/generate?grant_type=client_credentials';\r",
+							"let clientId = pm.environment.get('client_id');\r",
+							"//console.log(\"client_id: ${clientId}\");\r",
+							"let clientSecret = pm.environment.get('client_secret');\r",
+							"let scope = 'api'\r",
+							"\r",
+							"let getTokenRequest = {\r",
+							"    method: 'GET',\r",
+							"    url: tokenUrl,\r",
+							"    auth: {\r",
+							"        type: \"basic\",\r",
+							"        basic : [\r",
+							"            { key: \"username\", value: clientId },\r",
+							"            { key: \"password\", value: clientSecret }\r",
+							"        ]\r",
+							"    }\r",
+							"};\r",
+							"\r",
+							"pm.sendRequest(getTokenRequest, (err, response) => {\r",
+							"    let jsonResponse = response.json(),\r",
+							"        newAccessToken = jsonResponse.access_token;\r",
+							"\r",
+							"    console.log({ err, jsonResponse, newAccessToken })\r",
+							"\r",
+							"    pm.environment.set('accessToken', newAccessToken);\r",
+							"    pm.variables.set('accessToken', newAccessToken);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{accessToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://immekhan-test.apigee.net/notargetproxy",
+					"protocol": "http",
+					"host": [
+						"immekhan-test",
+						"apigee",
+						"net"
+					],
+					"path": [
+						"notargetproxy"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
