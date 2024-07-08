@@ -38,13 +38,20 @@ pipeline {
 
         stage('Verify and decode service account key') {
             steps {
-                sh 'echo "Base64-encoded service account key ${GCP_SA_KEY_BASE64}"'
-                sh '''
-                mkdir -p .secure_files
-                echo "${GCP_SA_KEY_BASE64}" | base64 --decode > .secure_files/service-account.json
-                echo "Service account key file content:"
-                cat .secure_files/service-account.json
-                '''
+                script {
+                    // Decode the Base64-encoded service account key
+                    def decodedKey = sh(script: "echo \${GCP_SA_KEY_BASE64} | base64 --decode", returnStdout: true).trim()
+
+                    // Create the .secure_files directory if it doesn't exist
+                    sh 'mkdir -p .secure_files'
+
+                    // Write the decoded key to the service account key file
+                    writeFile file: '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json', text: decodedKey
+
+                    // Print out the content of the decoded key (for verification)
+                    echo "Service account key file content:"
+                    sh 'cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json'
+                }
             }
         }
 
