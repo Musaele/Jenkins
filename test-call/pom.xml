@@ -1,15 +1,55 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<parent>
-		<groupId>apigee</groupId>
-		<artifactId>parent-pom</artifactId>
-		<version>1.0</version>
-		<relativePath>../shared-pom.xml</relativePath>
-	</parent>
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>Apigee</groupId>
-	<artifactId>test-call</artifactId>
-	<version>1.0</version>
-	<name>test-call</name>
-	<packaging>pom</packaging>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <!-- Inherit from parent-pom -->
+    <parent>
+        <groupId>apigee</groupId>
+        <artifactId>parent-pom</artifactId>
+        <version>1.0</version>
+        <relativePath>../shared-pom.xml</relativePath>
+    </parent>
+    
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>Apigee</groupId>
+    <artifactId>test-call</artifactId>
+    <version>1.0</version>
+    <name>test-call</name>
+    <packaging>pom</packaging>
+
+    <!-- Override or add specific configurations as needed -->
+
+    <build>
+        <plugins>
+            <!-- Ensure the apigee-edge-maven-plugin is properly configured -->
+            <plugin>
+                <groupId>io.apigee.build-tools.enterprise4g</groupId>
+                <artifactId>apigee-edge-maven-plugin</artifactId>
+                <version>2.3.5</version>
+                <!-- Define executions if not inherited -->
+                <executions>
+                    <execution>
+                        <id>configure-bundle</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>configure</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>deploy-bundle</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>deploy</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Other plugins if needed -->
+        </plugins>
+    </build>
+
+    <!-- Define or override profiles if needed -->
+    <profiles>
+        <!-- Add specific profiles or override inherited profiles here -->
+    </profiles>
 </project>
