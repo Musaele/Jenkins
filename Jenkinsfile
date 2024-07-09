@@ -8,13 +8,13 @@ pipeline {
         GCP_SA_KEY_BASE64 = credentials('GCP_SA_KEY_BASE64') // You need to add your secret to Jenkins credentials
     }
 
-    /*stages {
+    stages {
         stage('Checkout') {
             steps {
                 checkout scm
                 sh 'ls -al ${WORKSPACE}'
             }
-        }*/
+        }
         
         stage('Set up JDK 11') {
             steps {
@@ -38,20 +38,13 @@ pipeline {
 
         stage('Verify and decode service account key') {
             steps {
-                script {
-                    // Decode the Base64-encoded service account key
-                    def decodedKey = sh(script: "echo \${GCP_SA_KEY_BASE64} | base64 --decode", returnStdout: true).trim()
-
-                    // Create the .secure_files directory if it doesn't exist
-                    sh 'mkdir -p .secure_files'
-
-                    // Write the decoded key to the service account key file
-                    writeFile file: '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json', text: decodedKey
-
-                    // Print out the content of the decoded key (for verification)
-                    echo "Service account key file content:"
-                    sh 'cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json'
-                }
+                sh 'echo "Base64-encoded service account key ${GCP_SA_KEY_BASE64}"'
+                sh '''
+                mkdir -p .secure_files
+                echo "${GCP_SA_KEY_BASE64}" | base64 --decode > .secure_files/service-account.json
+                echo "Service account key file content:"
+                cat .secure_files/service-account.json
+                '''
             }
         }
 
@@ -61,14 +54,14 @@ pipeline {
             }
         }
 
-        stage('Execute custom script') {
+       /* stage('Execute custom script') {
             steps {
                 script {
                     def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
                     env.access_token = access_token
                 }
             }
-        }
+        }   */
 
         stage('Deploy') {
             steps {
