@@ -65,7 +65,7 @@ pipeline {
             steps {
                 script {
                     def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-                    env.ACCESS_TOKEN = access_token
+                    env.access_token = access_token
                 }
             }
         }
@@ -73,18 +73,18 @@ pipeline {
         stage('Deploy') {
             steps {
                 checkout scm
-                sh 'echo "Access token before Maven build and deploy ${ACCESS_TOKEN}"'
+                sh 'echo "Access token before Maven build and deploy ${access_token}"'
                 sh '''
                 echo "ORG: ${ORG}"
                 echo "PROXY_NAME: ${PROXY_NAME}"
                 echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
-                echo "Access token: ${ACCESS_TOKEN}"
+                echo "Access token: ${access_token}"
                 '''
                 sh '''
                 mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
                 -Dorg=${ORG} \
                 -P${APIGEE_ENVIRONMENT} \
-                -Dbearer=${ACCESS_TOKEN} -e -X
+                -Dbearer=${access_token} -e -X
                 '''
             }
         }
