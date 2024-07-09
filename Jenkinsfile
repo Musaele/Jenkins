@@ -113,65 +113,43 @@ pipeline {
     }
 
     stages {
-        stage('Main') {
+        stage('Initial-Checks') {
             steps {
                 script {
                     if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'preprod' || env.BRANCH_NAME == 'feature') {
-                        echo "Starting pipeline for branch: ${env.BRANCH_NAME}"
+                        office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
+                        message: "Started Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+
+                        sh 'node -v'
+                        sh 'npm -v'
+                        sh 'mvn -v'
+
+                        if (env.org == 'sfc-kenya-hybrid-prod') {
+                            sh "cd $WORKSPACE/scripts && sh revision.sh $org $ProxyName $ENV $KEY_FILE_Prod $WORKSPACE"
+                        } else if (env.org == 'sfc-kenya-hybrid-non-prod') {
+                            sh "cd $WORKSPACE/scripts && sh revision.sh $org $ProxyName $ENV $KEY_FILE_NonProd $WORKSPACE"
+                        }
+
+                        sh "cat $WORKSPACE/scripts/access_token.txt"
+                        sh "cat $WORKSPACE/scripts/stable_revision.txt"
+                        access_token = readFile 'scripts/access_token.txt'
+                        stable_revision = readFile 'scripts/stable_revision.txt'
+                        echo "access_token: ${access_token}"
+                        echo "stable_revision: ${stable_revision}"
                     } else {
-                        echo "Branch ${env.BRANCH_NAME} is not configured for this pipeline"
+                        // For other branches
+                        office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
+                        message: "Started Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+
+                        sh 'node -v'
+                        sh 'npm -v'
+                        sh 'mvn -v'
                     }
                 }
-            }
-        }
-
-        stage('Initial-Checks') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'preprod'
-                    branch 'feature'
-                }
-            }
-            steps {
-                office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
-                message: "Started Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
-
-                sh 'node -v'
-                sh 'npm -v'
-                sh 'mvn -v'
-
-                script {
-                    if (env.org == 'sfc-kenya-hybrid-prod') {
-                        sh "cd $WORKSPACE/scripts && sh revision.sh $org $ProxyName $ENV $KEY_FILE_Prod $WORKSPACE" // Capture and set the output variables
-                        access_token = readFile 'scripts/access_token.txt'
-                        stable_revision = readFile 'scripts/stable_revision.txt'
-                        echo "access_token: ${access_token}"
-                        echo "stable_revision: ${stable_revision}"
-                    } else if (env.org == 'sfc-kenya-hybrid-non-prod') {
-                        sh "cd $WORKSPACE/scripts && sh revision.sh $org $ProxyName $ENV $KEY_FILE_NonProd $WORKSPACE" // Capture and set the output variables
-                        access_token = readFile 'scripts/access_token.txt'
-                        stable_revision = readFile 'scripts/stable_revision.txt'
-                        echo "access_token: ${access_token}"
-                        echo "stable_revision: ${stable_revision}"
-                    }
-                }
-
-                echo "access_token: ${access_token}"
-                echo "Stable Revision: ${stable_revision}"
             }
         }
 
         stage('Veracode SCA scan') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'preprod'
-                    branch 'feature'
-                }
-            }
             steps {
                 withCredentials([string(credentialsId: 'SRCCLR_API_TOKEN', variable: 'SRCCLR_API_TOKEN')]) {
                     sh 'curl -sSL https://download.sourceclear.com/ci.sh | sh'
@@ -180,14 +158,6 @@ pipeline {
         }
 
         stage('Policy-Code Analysis') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'preprod'
-                    branch 'feature'
-                }
-            }
             steps {
                 script {
                     try {
@@ -203,50 +173,33 @@ pipeline {
         }
 
         stage('Deploy to Apigee') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'preprod'
-                    branch 'feature'
-                }
-            }
             steps {
                 echo "Deploy TOKEN: ${access_token}"
                 sh "mvn clean install -f $WORKSPACE/${ProxyName}/pom.xml -P$ENV -Dorg=${env.org} -Dbearer=${access_token}"
             }
         }
 
-        /*
-        stage('Integration Test Newman') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
-                    branch 'preprod'
-                    branch 'feature'
-                }
-            }
+        /* stage('Integration Test Newman') {
             steps {
                 script {
                     try {
                         sh "cd $WORKSPACE/scripts && sh integration.sh"
                     } catch (e) {
-                        rev_num = sh(script: 'curl -k -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$org/environments/$ENV/apis/$ProxyName/deployments" | jq -r ".deployments[].revision"', returnStdout: true).trim()
-                        env_name = sh(script: 'curl -k -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$org/environments/$ENV/apis/$ProxyName/deployments" | jq -r ".deployments[].environment"', returnStdout: true).trim()
+                        def rev_num = sh(script: 'curl -k -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$org/environments/$ENV/apis/$ProxyName/deployments" | jq -r ".deployments[].revision"', returnStdout: true).trim()
+                        def env_name = sh(script: 'curl -k -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$org/environments/$ENV/apis/$ProxyName/deployments" | jq -r ".deployments[].environment"', returnStdout: true).trim()
 
                         echo "rev_num: $rev_num"
                         echo "env_name: $env_name"
 
                         sh "cd $WORKSPACE/scripts && sh undeploy.sh $stable_revision $rev_num $env_name"
+
                         throw e
                     } finally {
-                        publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: './test/integration/reports', reportFiles: 'Newman_Integration_Tests_Report_$BUILD_NUMBER.html', reportName: 'Newman Integration Tests Report', reportTitles: ''])
+                        publishHTML([allowMissing: true, alwaysLinkToLastBuild: true, keepAll: true, reportDir: './test/integration/reports', reportFiles: 'Newman_Integration_Tests_Report_$BUILD_NUMBER.html', reportName: 'Newman_Integration_Tests_Report', reportTitles: ''])
                     }
                 }
             }
-        }
-        */
+        } */
     }
 
     post {
@@ -262,3 +215,4 @@ pipeline {
         }
     }
 }
+
