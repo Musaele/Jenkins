@@ -8,13 +8,13 @@ pipeline {
         GCP_SA_KEY_BASE64 = credentials('GCP_SA_KEY_BASE64') // You need to add your secret to Jenkins credentials
     }
 
-    stages {
+    /*stages {
         stage('Checkout') {
             steps {
                 checkout scm
                 sh 'ls -al ${WORKSPACE}'
             }
-        }
+        }*/
         
         stage('Set up JDK 11') {
             steps {
