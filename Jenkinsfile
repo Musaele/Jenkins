@@ -51,7 +51,7 @@ pipeline {
         stage('Execute custom script') {
             steps {
                 script {
-                    sh "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}"
+                    sh "./revision1.sh
                     env.access_token = access_token
                 }
             }
