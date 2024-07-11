@@ -51,16 +51,11 @@ pipeline {
         stage('Verify Access Token') {
             steps {
                 script {
-                    sh '''
-                    # Authenticate with the service account
-                    gcloud auth activate-service-account --key-file=.secure_files/service-account.json
-                    
-                    # Obtain an access token
-                    access_token=$(gcloud auth print-access-token)
-                    
-                    # Print the access token
+                    def access_token = sh(script: '''
+                        gcloud auth activate-service-account --key-file=.secure_files/service-account.json
+                        gcloud auth print-access-token
+                    ''', returnStdout: true).trim()
                     echo "Access token: ${access_token}"
-                    '''
                 }
             }
         }
@@ -68,6 +63,9 @@ pipeline {
         stage('Execute custom script') {
             steps {
                 script {
+                    // Set execute permission on revision1.sh
+                    sh 'chmod +x ./revision1.sh'
+                    // Execute the script
                     sh './revision1.sh'
                 }
             }
