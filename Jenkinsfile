@@ -12,18 +12,24 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    checkout scm
+                    // Ensure the .secure_files directory exists and set proper permissions
+                    sh '''
+                    mkdir -p .secure_files
+                    chmod 700 .secure_files
+                    '''
                     
                     // Decode base64-encoded service account key and save to file
                     sh '''
-                    mkdir -p .secure_files
                     echo "${GCP_SA_KEY_BASE64}" | base64 --decode > ${SERVICE_ACCOUNT_KEY_FILE}
                     '''
                     
-                    // Check if the file exists
-                    sh "ls -l ${SERVICE_ACCOUNT_KEY_FILE}"
+                    // Check if the file exists and has correct permissions
+                    sh '''
+                    ls -l ${SERVICE_ACCOUNT_KEY_FILE}
+                    ls -l .secure_files
+                    '''
                     
-                    // Verify the contents (optional)
+                    // Verify the contents of the key file (optional)
                     sh "cat ${SERVICE_ACCOUNT_KEY_FILE}"
                     
                     // Execute revision1.sh with environment variables
@@ -36,7 +42,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Ensure service account key file is available
+                    // Ensure service account key file is available with proper permissions
                     sh "ls -l ${SERVICE_ACCOUNT_KEY_FILE}"
                     
                     // Use the decoded service account key file in deploy stage
