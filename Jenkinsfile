@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.8.4-jdk-11'
-            args '-u root:root'
-        }
-    }
+    agent any
 
     environment {
         ORG = 'abacus-apigee-demo'
@@ -14,6 +9,12 @@ pipeline {
 
     stages {
         stage('Build') {
+            agent {
+                docker {
+                    image 'maven:3.8.4-jdk-11'
+                    args '-u root:root'
+                }
+            }
             steps {
                 script {
                     // Install required dependencies
@@ -28,20 +29,19 @@ pipeline {
                     sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
 
                     // Executing bash script to get access token & stable_revision_number
-                    script {
-                        def output = sh(script: 'source ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT} && echo access_token=$access_token && echo stable_revision_number=$stable_revision_number', returnStdout: true)
-                        def envVars = output.split("\n")
-                        for (envVar in envVars) {
-                            def keyValue = envVar.split("=")
-                            if (keyValue.length == 2) {
-                                env[keyValue[0]] = keyValue[1]
-                            }
+                    def output = sh(script: 'source ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT} && echo access_token=$access_token && echo stable_revision_number=$stable_revision_number', returnStdout: true).trim()
+                    def envVars = output.split("\n")
+                    envVars.each { envVar ->
+                        def keyValue = envVar.split("=")
+                        if (keyValue.length == 2) {
+                            env[keyValue[0]] = keyValue[1]
                         }
                     }
+
+                    // Save environment variables as artifacts for later stages
+                    writeFile file: 'build.env', text: "access_token=${env.access_token}\nstable_revision_number=${env.stable_revision_number}"
+                    archiveArtifacts artifacts: 'build.env', allowEmptyArchive: true
                 }
-                // Save environment variables as artifacts for later stages
-                writeFile file: 'build.env', text: "access_token=${env.access_token}\nstable_revision_number=${env.stable_revision_number}"
-                archiveArtifacts artifacts: 'build.env', allowEmptyArchive: true
             }
         }
 
