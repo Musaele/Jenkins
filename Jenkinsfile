@@ -48,23 +48,16 @@ pipeline {
             }
         }
 
-        stage('Make revision1.sh executable') {
+        stage('Execute custom script') {
             steps {
-                sh 'chmod +x ./revision1.sh'
+                script {
+                    def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
+                    env.access_token = access_token
+                }
             }
         }
 
-       // stage('Execute custom script') {
-         //   steps {
-         //       script {
-         //           def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-         //           env.access_token = access_token
-         //       }
-         //   }
-       // }   
-
-     
-      stage('Deploy') {
+        stage('Deploy') {
             steps {
                 checkout scm
                 sh 'echo "Access token before Maven build and deploy ${access_token}"'
