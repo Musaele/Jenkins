@@ -48,7 +48,7 @@ pipeline {
             }
         }
 
-        stage('Echo access token') {
+        stage('Verify Access Token') {
             steps {
                 script {
                     sh '''
@@ -60,37 +60,18 @@ pipeline {
                     
                     # Print the access token
                     echo "Access token: ${access_token}"
-                    
-                    # Save the access token to an environment variable
-                    echo "access_token=${access_token}" > .env
                     '''
-                    // Load the environment variables
-                    def props = readProperties(file: '.env')
-                    env.access_token = props['access_token']
                 }
             }
         }
 
-        /*
-        stage('Deploy') {
+        stage('Execute custom script') {
             steps {
-                checkout scm
-                sh 'echo "Access token before Maven build and deploy ${access_token}"'
-                sh '''
-                echo "ORG: ${ORG}"
-                echo "PROXY_NAME: ${PROXY_NAME}"
-                echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
-                echo "Access token: ${access_token}"
-                '''
-                sh '''
-                mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
-                -Dorg=${ORG} \
-                -P${APIGEE_ENVIRONMENT} \
-                -Dbearer=${access_token} -e -X
-                '''
+                script {
+                    sh './revision1.sh'
+                }
             }
         }
-        */
     }
 
     post {
