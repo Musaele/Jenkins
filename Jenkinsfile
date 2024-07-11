@@ -54,14 +54,14 @@ pipeline {
             }
         }
 
-        stage('Execute custom script') {
-            steps {
-                script {
-                    def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-                    env.access_token = access_token
-                }
-            }
-        }   
+       // stage('Execute custom script') {
+         //   steps {
+         //       script {
+         //           def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
+         //           env.access_token = access_token
+         //       }
+         //   }
+       // }   
 
      
       stage('Deploy') {
