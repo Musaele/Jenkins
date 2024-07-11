@@ -48,6 +48,7 @@ pipeline {
             }
         }
 
+        /*
         stage('Execute custom script') {
             steps {
                 script {
@@ -75,6 +76,7 @@ pipeline {
                 '''
             }
         }
+        */
     }
 
     post {
