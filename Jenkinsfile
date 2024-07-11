@@ -11,7 +11,8 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    docker.image('maven:3.8.4-jdk-11').inside('-u root:root') {
+                    def dockerImage = docker.image('maven:3.8.4-jdk-11')
+                    dockerImage.inside('-u root:root') {
                         // Install required dependencies
                         sh '''
                             apt-get update -qy
