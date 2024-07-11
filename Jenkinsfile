@@ -34,7 +34,7 @@ pipeline {
                     
                     // Execute revision1.sh with environment variables
                     def scriptOutput = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-                    echo scriptOutput
+                    echo "Script Output: ${scriptOutput}"
                 }
             }
         }
