@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'maven:3.8.4-jdk-11'
+            args '-u root:root' // Run as root user to avoid permission issues
+        }
+    }
 
     environment {
         ORG = 'abacus-apigee-demo'
@@ -14,7 +19,7 @@ pipeline {
                     // Install required dependencies
                     sh '''
                         apt-get update -qy
-                        apt-get install -y curl jq maven npm gnupg
+                        apt-get install -y curl jq npm gnupg
                         curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
                         echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
                         apt-get update && apt-get install -y google-cloud-sdk
