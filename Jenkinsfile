@@ -1,54 +1,92 @@
 pipeline {
     agent any
-    
+
     environment {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        SERVICE_ACCOUNT_KEY_FILE = '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json'
+        GCP_SA_KEY_BASE64 = credentials('GCP_SA_KEY_BASE64') // You need to add your secret to Jenkins credentials
     }
-    
+
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                script {
-                    // Ensure the .secure_files directory exists and set proper permissions
-                    sh '''
-                    mkdir -p .secure_files
-                    chmod 700 .secure_files
-                    '''
-                    
-                    // Decode base64-encoded service account key and save to file
-                    sh '''
-                    echo "${GCP_SA_KEY_BASE64}" | base64 --decode > ${SERVICE_ACCOUNT_KEY_FILE}
-                    '''
-                    
-                    // Check if the file exists and has correct permissions
-                    sh '''
-                    ls -l ${SERVICE_ACCOUNT_KEY_FILE}
-                    ls -l .secure_files
-                    '''
-                    
-                    // Verify the contents of the key file (optional)
-                    sh "cat ${SERVICE_ACCOUNT_KEY_FILE}"
-                    
-                    // Execute revision1.sh with environment variables
-                    def scriptOutput = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-                    echo "Script Output: ${scriptOutput}"
-                }
+                checkout scm
+                sh 'ls -al ${WORKSPACE}'
             }
         }
         
-        stage('Deploy') {
+        stage('Set up JDK 11') {
+            steps {
+                sh 'sudo apt-get update -qy'
+                sh 'sudo apt-get install -y openjdk-11-jdk'
+                sh 'java -version'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                sh '''
+                sudo apt-get update -qy
+                sudo apt-get install -y curl jq maven npm gnupg
+                curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+                '''
+            }
+        }
+
+        stage('Verify and decode service account key') {
+            steps {
+                sh 'echo "Base64-encoded service account key ${GCP_SA_KEY_BASE64}"'
+                sh '''
+                mkdir -p .secure_files
+                echo "${GCP_SA_KEY_BASE64}" | base64 --decode > .secure_files/service-account.json
+                echo "Service account key file content:"
+                cat .secure_files/service-account.json
+                '''
+            }
+        }
+
+        stage('Make revision1.sh executable') {
+            steps {
+                sh 'chmod +x ./revision1.sh'
+            }
+        }
+
+        stage('Execute custom script') {
             steps {
                 script {
-                    // Ensure service account key file is available with proper permissions
-                    sh "ls -l ${SERVICE_ACCOUNT_KEY_FILE}"
-                    
-                    // Use the decoded service account key file in deploy stage
-                    // Example: mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml -Dorg=${ORG} -P${APIGEE_ENVIRONMENT} -Dbearer=$(cat ${SERVICE_ACCOUNT_KEY_FILE}) -e -X
+                    def access_token = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
+                    env.access_token = access_token
                 }
             }
+        }   
+
+     
+      stage('Deploy') {
+            steps {
+                checkout scm
+                sh 'echo "Access token before Maven build and deploy ${access_token}"'
+                sh '''
+                echo "ORG: ${ORG}"
+                echo "PROXY_NAME: ${PROXY_NAME}"
+                echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
+                echo "Access token: ${access_token}"
+                '''
+                sh '''
+                mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
+                -Dorg=${ORG} \
+                -P${APIGEE_ENVIRONMENT} \
+                -Dbearer=${access_token} -e -X
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
