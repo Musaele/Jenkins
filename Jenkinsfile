@@ -9,38 +9,34 @@ pipeline {
 
     stages {
         stage('Build') {
-            agent {
-                docker {
-                    image 'maven:3.8.4-jdk-11'
-                    args '-u root:root'
-                }
-            }
             steps {
                 script {
-                    // Install required dependencies
-                    sh '''
-                        apt-get update -qy
-                        apt-get install -y curl jq npm gnupg
-                        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                        apt-get update && apt-get install -y google-cloud-sdk
-                    '''
-                    // SECURE_FILES_DOWNLOAD
-                    sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
+                    docker.image('maven:3.8.4-jdk-11').inside('-u root:root') {
+                        // Install required dependencies
+                        sh '''
+                            apt-get update -qy
+                            apt-get install -y curl jq npm gnupg
+                            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+                            echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                            apt-get update && apt-get install -y google-cloud-sdk
+                        '''
+                        // SECURE_FILES_DOWNLOAD
+                        sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
 
-                    // Executing bash script to get access token & stable_revision_number
-                    def output = sh(script: 'source ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT} && echo access_token=$access_token && echo stable_revision_number=$stable_revision_number', returnStdout: true).trim()
-                    def envVars = output.split("\n")
-                    envVars.each { envVar ->
-                        def keyValue = envVar.split("=")
-                        if (keyValue.length == 2) {
-                            env[keyValue[0]] = keyValue[1]
+                        // Executing bash script to get access token & stable_revision_number
+                        def output = sh(script: 'source ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT} && echo access_token=$access_token && echo stable_revision_number=$stable_revision_number', returnStdout: true).trim()
+                        def envVars = output.split("\n")
+                        envVars.each { envVar ->
+                            def keyValue = envVar.split("=")
+                            if (keyValue.length == 2) {
+                                env[keyValue[0]] = keyValue[1]
+                            }
                         }
-                    }
 
-                    // Save environment variables as artifacts for later stages
-                    writeFile file: 'build.env', text: "access_token=${env.access_token}\nstable_revision_number=${env.stable_revision_number}"
-                    archiveArtifacts artifacts: 'build.env', allowEmptyArchive: true
+                        // Save environment variables as artifacts for later stages
+                        writeFile file: 'build.env', text: "access_token=${env.access_token}\nstable_revision_number=${env.stable_revision_number}"
+                        archiveArtifacts artifacts: 'build.env', allowEmptyArchive: true
+                    }
                 }
             }
         }
