@@ -51,7 +51,7 @@ pipeline {
         stage('Execute custom script') {
             steps {
                 script {
-                    sh "./revision1.sh
+                    sh './revision1.sh'
                     env.access_token = access_token
                 }
             }
