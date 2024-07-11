@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'maven:3.8.4-jdk-11'
-            args '-u root:root' // Run as root user to avoid permission issues
+            args '-u root:root'
         }
     }
 
