@@ -5,6 +5,7 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
+        SERVICE_ACCOUNT_KEY_FILE = '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json'
     }
     
     stages {
@@ -13,39 +14,21 @@ pipeline {
                 script {
                     checkout scm
                     
-                    // Set up JDK 11
-                    tool name: 'JDK 11', type: 'jdk'
-                    
-                    // Install dependencies
-                    sh '''
-                    sudo apt-get update -qy
-                    sudo apt-get install -y curl jq maven npm gnupg
-                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-                    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                    sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-                    '''
-                    
-                    // Verify base64-encoded service account key
-                    sh "echo 'Base64-encoded service account key ${env.GCP_SA_KEY_BASE64}'"
-                    
-                    // Decode and write service account key to file
+                    // Decode base64-encoded service account key and save to file
                     sh '''
                     mkdir -p .secure_files
-                    echo "${env.GCP_SA_KEY_BASE64}" | base64 --decode > .secure_files/service-account.json
+                    echo "${GCP_SA_KEY_BASE64}" | base64 --decode > ${SERVICE_ACCOUNT_KEY_FILE}
                     '''
                     
-                    // Check service account key file
-                    sh '''
-                    echo "Service account key file content:"
-                    cat .secure_files/service-account.json
-                    '''
+                    // Check if the file exists
+                    sh "ls -l ${SERVICE_ACCOUNT_KEY_FILE}"
                     
-                    // Make revision1.sh executable
-                    sh "chmod +x ./revision1.sh"
+                    // Verify the contents (optional)
+                    sh "cat ${SERVICE_ACCOUNT_KEY_FILE}"
                     
-                    // Execute custom script to get token
-                    def getAccessToken = sh(script: "./revision1.sh ${env.ORG} ${env.PROXY_NAME} ${env.APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-                    env.ACCESS_TOKEN = getAccessToken
+                    // Execute revision1.sh with environment variables
+                    def scriptOutput = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
+                    echo scriptOutput
                 }
             }
         }
@@ -53,27 +36,11 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Checkout code
-                    checkout scm
+                    // Ensure service account key file is available
+                    sh "ls -l ${SERVICE_ACCOUNT_KEY_FILE}"
                     
-                    // Echo access token
-                    echo "Access token before Maven build and deploy ${env.ACCESS_TOKEN}"
-                    
-                    // Debug environment variables
-                    sh '''
-                    echo "ORG: ${env.ORG}"
-                    echo "PROXY_NAME: ${env.PROXY_NAME}"
-                    echo "APIGEE_ENVIRONMENT: ${env.APIGEE_ENVIRONMENT}"
-                    echo "Access token: ${env.ACCESS_TOKEN}"
-                    '''
-                    
-                    // Maven build and deploy
-                    sh '''
-                    mvn clean install -f ${env.WORKSPACE}/${env.PROXY_NAME}/pom.xml \
-                      -Dorg=${env.ORG} \
-                      -P${env.APIGEE_ENVIRONMENT} \
-                      -Dbearer=${env.ACCESS_TOKEN} -e -X
-                    '''
+                    // Use the decoded service account key file in deploy stage
+                    // Example: mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml -Dorg=${ORG} -P${APIGEE_ENVIRONMENT} -Dbearer=$(cat ${SERVICE_ACCOUNT_KEY_FILE}) -e -X
                 }
             }
         }
