@@ -48,17 +48,30 @@ pipeline {
             }
         }
 
-        /*
-        stage('Execute custom script') {
+        stage('Echo access token') {
             steps {
                 script {
-                    sh './revision1.sh'
-                    env.access_token = access_token
+                    sh '''
+                    # Authenticate with the service account
+                    gcloud auth activate-service-account --key-file=.secure_files/service-account.json
+                    
+                    # Obtain an access token
+                    access_token=$(gcloud auth print-access-token)
+                    
+                    # Print the access token
+                    echo "Access token: ${access_token}"
+                    
+                    # Save the access token to an environment variable
+                    echo "access_token=${access_token}" > .env
+                    '''
+                    // Load the environment variables
+                    def props = readProperties(file: '.env')
+                    env.access_token = props['access_token']
                 }
             }
         }
-        */
 
+        /*
         stage('Deploy') {
             steps {
                 checkout scm
@@ -77,6 +90,7 @@ pipeline {
                 '''
             }
         }
+        */
     }
 
     post {
