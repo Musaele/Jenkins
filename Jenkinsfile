@@ -5,7 +5,7 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        GCP_SA_KEY_BASE64 = credentials('GCP_SA_KEY_BASE64') // You need to add your secret to Jenkins credentials
+        GCP_SA_KEY_FILE = credentials('service_file') // Using the new secret file
     }
 
     stages {
@@ -38,38 +38,44 @@ pipeline {
 
         stage('Verify and decode service account key') {
             steps {
-                sh 'echo "Base64-encoded service account key ${GCP_SA_KEY_BASE64}"'
                 sh '''
                 mkdir -p .secure_files
-                echo "${GCP_SA_KEY_BASE64}" | base64 --decode > .secure_files/service-account.json
+                cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
                 echo "Service account key file content:"
                 cat .secure_files/service-account.json
                 '''
             }
         }
 
-        stage('Verify Access Token') {
+        /*
+        stage('Execute custom script') {
             steps {
                 script {
-                    def access_token = sh(script: '''
-                        gcloud auth activate-service-account --key-file=.secure_files/service-account.json
-                        gcloud auth print-access-token
-                    ''', returnStdout: true).trim()
-                    echo "Access token: ${access_token}"
+                    sh './revision1.sh'
+                    env.access_token = access_token
                 }
             }
         }
 
-        stage('Execute custom script') {
+        stage('Deploy') {
             steps {
-                script {
-                    // Set execute permission on revision1.sh
-                    sh 'chmod +x ./revision1.sh'
-                    // Execute the script
-                    sh './revision1.sh'
-                }
+                checkout scm
+                sh 'echo "Access token before Maven build and deploy ${access_token}"'
+                sh '''
+                echo "ORG: ${ORG}"
+                echo "PROXY_NAME: ${PROXY_NAME}"
+                echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
+                echo "Access token: ${access_token}"
+                '''
+                sh '''
+                mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
+                -Dorg=${ORG} \
+                -P${APIGEE_ENVIRONMENT} \
+                -Dbearer=${access_token} -e -X
+                '''
             }
         }
+        */
     }
 
     post {
