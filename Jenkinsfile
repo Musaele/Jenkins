@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -41,9 +40,9 @@ pipeline {
                 withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
                     script {
                         def serviceAccountKey = readFile(file: "${GCP_SA_KEY_FILE}")
+                        writeFile file: '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json', text: serviceAccountKey
                         sh '''
                         mkdir -p .secure_files
-                        echo "${serviceAccountKey}" > .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
                         echo "Service account key file content:"
                         cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
                         '''
@@ -55,6 +54,8 @@ pipeline {
         stage('Execute custom script') {
             steps {
                 script {
+                    // Add execute permission to the script
+                    sh 'chmod +x ./revision1.sh'
                     def output = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
                     env.access_token = output.split('Access Token: ')[1].split('\n')[0]
                     echo "Access token: ${env.access_token}"
