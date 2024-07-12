@@ -8,16 +8,29 @@ echo "ORG: $ORG"
 echo "ProxyName: $ProxyName"
 echo "ENV: $ENV"
 
-# Get the access token from Apigee
-      access_token=$(curl -H "Authorization: Basic QVZxZ1I4Yk9vV24wcHRBOVZDYmNhSk11aVpzVFlkNFpGa0x0bHducTRpbE9tOFV5OjZBaW5pT3U2QXJGMUNuOGZHcVFzUXozRjFqbTZrRVhtMExZUGhJeDFBT3BlRURkVzB0OUtQRlFZRURpWHhsajA=" "https://api.abacus-apigeee.com/v1/management/token" | jq -r ".access_token")
-	  #access_token="ya29.a0AfB_byBAmGRHLKFVs6uPGlFyc3eMaiqvW0NGs-gpg69ONkloQYWLYsQKookQSI1symZbvqXqc1HtMLT8Lw0tVRFVqZR3XeJMBQa4psCg6flFPBxqJcrecXRDSXYIeP_iCEtBPBIuBQOw5bCyOytZtxTwRUB-fJu7rAz7_qyh6zetq4A53_wJ6jz5s4wrJQLzWHtRAO1ZpKrLNsh0y6c8cejaK1M2TCEUoN3ihorw_HZl58csZwnyiQp9ao7-81d6brNTeDav8RLUhboKrgduVW4JS-enSYudM8sF9D9YsIUJRNuCCiGoGYSXx5ECRTlzgI4W1mzSkpC3dPKK8YbRH5JDhZsL4Fu1JD3P3QN0-IpGpaS96Ot4MoSnhZO-iRhuYEJz_2NoEFhdghaZ3zsrWqyjGyFfTskaCgYKAUYSARMSFQHGX2Mi7PykE8QtxErY3gY8arUDXg0422"
+# Set the path to your service account JSON key file
+KEY_FILE=".secure_files/abacus-apigee-demo-a9fffc7cc15c.json"
 
-      if [ -z "$access_token" ]; then
-        echo "Failed to obtain access token. Check your Apigee credentials and try again."
-        exit 1
-      fi
+echo "$KEY_FILE"
 
-echo "access_token: $access_token"
+# Check if the key file exists
+if [ ! -f "$KEY_FILE" ]; then
+  echo "Service account key file '$KEY_FILE' not found."
+  exit 1
+fi
+
+# Authenticate with the service account and obtain an access token
+gcloud auth activate-service-account --key-file="$KEY_FILE"
+access_token=$(gcloud auth print-access-token)
+
+# Check if access token retrieval was successful
+if [ -z "$access_token" ]; then
+  echo "Failed to obtain access token. Check your service account credentials and try again."
+  exit 1
+fi
+
+# Print the access token
+echo "Access Token: $access_token"
 
 # Get stable_revision_number using access_token
 revision_info=$(curl -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$ProxyName/deployments")
