@@ -5,6 +5,7 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
+        GCP_SA_KEY_FILE = credentials('service_file')
     }
 
     stages {
@@ -14,7 +15,7 @@ pipeline {
                 sh 'ls -al ${WORKSPACE}'
             }
         }
-        
+
         stage('Set up JDK 11') {
             steps {
                 sh 'sudo apt-get update -qy'
@@ -38,15 +39,12 @@ pipeline {
         stage('Verify service account key') {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
-                    script {
-                        def serviceAccountKey = readFile(file: "${GCP_SA_KEY_FILE}")
-                        writeFile file: '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json', text: serviceAccountKey
-                        sh '''
-                        mkdir -p .secure_files
-                        echo "Service account key file content:"
-                        cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
-                        '''
-                    }
+                    sh '''
+                    mkdir -p .secure_files
+                    cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
+                    echo "Service account key file content:"
+                    cat .secure_files/service-account.json
+                    '''
                 }
             }
         }
@@ -54,11 +52,7 @@ pipeline {
         stage('Execute custom script') {
             steps {
                 script {
-                    // Add execute permission to the script
-                    sh 'chmod +x ./revision1.sh'
-                    def output = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
-                    env.access_token = output.split('Access Token: ')[1].split('\n')[0]
-                    echo "Access token: ${env.access_token}"
+                    sh './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}'
                 }
             }
         }
@@ -66,19 +60,21 @@ pipeline {
         stage('Deploy') {
             steps {
                 checkout scm
-                sh 'echo "Access token before Maven build and deploy ${access_token}"'
-                sh '''
-                echo "ORG: ${ORG}"
-                echo "PROXY_NAME: ${PROXY_NAME}"
-                echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
-                echo "Access token: ${access_token}"
-                '''
-                sh '''
-                mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
-                -Dorg=${ORG} \
-                -P${APIGEE_ENVIRONMENT} \
-                -Dbearer=${access_token} -e -X
-                '''
+                script {
+                    def accessToken = sh(script: './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}', returnStdout: true).trim()
+                    sh '''
+                    echo "ORG: ${ORG}"
+                    echo "PROXY_NAME: ${PROXY_NAME}"
+                    echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
+                    echo "Access token: ${accessToken}"
+                    '''
+                    sh '''
+                    mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
+                    -Dorg=${ORG} \
+                    -P${APIGEE_ENVIRONMENT} \
+                    -Dbearer=${accessToken} -e -X
+                    '''
+                }
             }
         }
     }
