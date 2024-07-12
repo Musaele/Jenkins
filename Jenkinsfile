@@ -54,7 +54,10 @@ pipeline {
         stage('Execute custom script') {
             steps {
                 script {
-                    sh './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}'
+                    sh '''
+                    chmod +x ./revision1.sh
+                    ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
+                    '''
                 }
             }
         }
