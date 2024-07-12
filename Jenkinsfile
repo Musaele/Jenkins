@@ -35,14 +35,12 @@ pipeline {
             }
         }
 
-        stage('Verify and decode service account key') {
+        stage('Verify service account key') {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
                     sh '''
-                    mkdir -p .secure_files
-                    cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
                     echo "Service account key file content:"
-                    cat .secure_files/service-account.json
+                    cat ${GCP_SA_KEY_FILE}
                     '''
                 }
             }
