@@ -19,14 +19,13 @@ if [ ! -f "$KEY_FILE" ]; then
   exit 1
 fi
 
-# Get the access token from Apigee
-
+# Authenticate with the service account and obtain an access token
 gcloud auth activate-service-account --key-file="$KEY_FILE"
 access_token=$(gcloud auth print-access-token)
 
 # Check if access token retrieval was successful
 if [ -z "$access_token" ]; then
-  echo "Failed to obtain access token. Check your Apigee credentials and try again."
+  echo "Failed to obtain access token. Check your service account credentials and try again."
   exit 1
 fi
 
