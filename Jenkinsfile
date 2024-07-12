@@ -42,6 +42,7 @@ pipeline {
                     sh '''
                     echo "Debug: GCP_SA_KEY_FILE is ${GCP_SA_KEY_FILE}"
                     mkdir -p .secure_files
+                    ls -al .secure_files
                     cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
                     echo "Service account key file content:"
                     cat .secure_files/service-account.json
