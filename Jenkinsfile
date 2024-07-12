@@ -30,7 +30,7 @@ pipeline {
                 sudo apt-get update -qy
                 sudo apt-get install -y curl jq maven npm gnupg
                 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-                echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
                 sudo apt-get update && sudo apt-get install -y google-cloud-sdk
                 '''
             }
@@ -43,7 +43,7 @@ pipeline {
                     echo "Debug: GCP_SA_KEY_FILE is ${GCP_SA_KEY_FILE}"
                     mkdir -p .secure_files
                     ls -al .secure_files
-                    cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
+                    cp "${GCP_SA_KEY_FILE}" .secure_files/service-account.json
                     echo "Service account key file content:"
                     cat .secure_files/service-account.json
                     '''
