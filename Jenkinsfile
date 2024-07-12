@@ -42,25 +42,26 @@ pipeline {
                         def serviceAccountKey = readFile(file: "${GCP_SA_KEY_FILE}")
                         sh '''
                         mkdir -p .secure_files
-                        echo "${serviceAccountKey}" > .secure_files/service-account.json
+                        echo "${serviceAccountKey}" > .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
                         echo "Service account key file content:"
-                        cat .secure_files/service-account.json
+                        cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
                         '''
                     }
                 }
             }
         }
 
-        /*
         stage('Execute custom script') {
             steps {
                 script {
-                    sh './revision1.sh'
-                    env.access_token = access_token
+                    def output = sh(script: "./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}", returnStdout: true).trim()
+                    env.access_token = output.split('Access Token: ')[1].split('\n')[0]
+                    echo "Access token: ${env.access_token}"
                 }
             }
         }
 
+        /*
         stage('Deploy') {
             steps {
                 checkout scm
