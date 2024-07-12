@@ -40,6 +40,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
                     sh '''
+                    echo "Debug: GCP_SA_KEY_FILE is ${GCP_SA_KEY_FILE}"
                     mkdir -p .secure_files
                     cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
                     echo "Service account key file content:"
