@@ -63,7 +63,6 @@ pipeline {
             }
         }
 
-        /*
         stage('Deploy') {
             steps {
                 checkout scm
@@ -82,7 +81,6 @@ pipeline {
                 '''
             }
         }
-        */
     }
 
     post {
