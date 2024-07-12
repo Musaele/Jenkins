@@ -5,7 +5,6 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        GCP_SA_KEY_FILE = credentials('service_file') // Using the new secret file
     }
 
     stages {
@@ -36,12 +35,16 @@ pipeline {
             }
         }
 
-        stage('Verify service account key') {
+        stage('Verify and decode service account key') {
             steps {
-                sh '''
-                echo "Service account key file content:"
-                cat ${GCP_SA_KEY_FILE}
-                '''
+                withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
+                    sh '''
+                    mkdir -p .secure_files
+                    cp ${GCP_SA_KEY_FILE} .secure_files/service-account.json
+                    echo "Service account key file content:"
+                    cat .secure_files/service-account.json
+                    '''
+                }
             }
         }
 
