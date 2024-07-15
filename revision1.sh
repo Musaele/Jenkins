@@ -8,8 +8,8 @@ echo "ORG: $ORG"
 echo "ProxyName: $ProxyName"
 echo "ENV: $ENV"
 
-# Set the path to your service account JSON key file (loaded by Jenkins)
-KEY_FILE="$SERVICE_ACCOUNT_KEY_PATH"
+# Set the path to your service account JSON key file
+KEY_FILE=".secure_files/service-account.json"
 
 echo "$KEY_FILE"
 
@@ -32,11 +32,11 @@ fi
 # Print the access token
 echo "Access Token: $access_token"
 
-# Save the access token in the environment file (for Jenkins)
-echo "access_token=$access_token" >> $GITHUB_ENV
+# Save the access token in the environment file
+echo "access_token=$access_token" >> .secure_files/build.env
 
-# Set output for Jenkins to use later
-echo "::set-output name=access_token::$access_token"
+# Set output for Jenkins pipeline
+echo "access_token=$access_token"
 
 # Get stable_revision_number using access_token
 revision_info=$(curl -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$ProxyName/deployments")
