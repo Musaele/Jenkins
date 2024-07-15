@@ -3,25 +3,21 @@
 ORG=$1
 ProxyName=$2
 ENV=$3
+KEY_FILE=$4
 
 echo "ORG: $ORG"
 echo "ProxyName: $ProxyName"
 echo "ENV: $ENV"
+echo "Service account key file: $KEY_FILE"
 
-# Set the path where Jenkins mounts the secret file
-SECRET_FILE_PATH="/var/lib/jenkins/workspace/Jenkins@tmp/secretFiles/service_file"
-
-# Ensure the file exists (note: Jenkins manages file permissions itself)
-if [ ! -f "$SECRET_FILE_PATH" ]; then
-  echo "Service account key file '$SECRET_FILE_PATH' not found."
+# Check if the key file exists
+if [ ! -f "$KEY_FILE" ]; then
+  echo "Service account key file '$KEY_FILE' not found."
   exit 1
 fi
 
-# Copy the secret file to a location accessible to your script
-cp "$SECRET_FILE_PATH" ./secure_files/service-account.json
-
 # Get the access token from Apigee
-gcloud auth activate-service-account --key-file="./secure_files/service-account.json"
+gcloud auth activate-service-account --key-file="$KEY_FILE"
 access_token=$(gcloud auth print-access-token)
 
 # Check if access token retrieval was successful
@@ -34,10 +30,10 @@ fi
 echo "Access Token: $access_token"
 
 # Save the access token in the environment file
-echo "access_token=$access_token" >> .secure_files/build.env
+echo "access_token=$access_token" >> $GITHUB_ENV
 
-# Set output for Jenkins pipeline
-echo "access_token=$access_token"
+# Set output for GitHub Actions
+echo "::set-output name=access_token::$access_token"
 
 # Get stable_revision_number using access_token
 revision_info=$(curl -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$ProxyName/deployments")
