@@ -5,82 +5,110 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        GCP_SA_KEY_FILE = credentials('service_file')
+        //MICROSOFT_TEAMS_WEBHOOK_URL = 'https://abacusglobal.webhook.office.com/webhookb2/560704ee-2f2d-463d-9ba4-1302c93ced65@51f97e66-3fe9-450d-88ac-7a2380c3f3c6/IncomingWebhook/01173ce910434faa8422545a107ec368/60ec973a-03f8-40b3-884e-0ae804b3ddab'
+        //NEWMAN_TARGET_URL = 'NoTargetProxy_GET_Req_Pass.postman_collection.json'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-                sh 'ls -al ${WORKSPACE}'
-            }
-        }
-
-        stage('Set up JDK 11') {
-            steps {
-                sh 'sudo apt-get update -qy'
-                sh 'sudo apt-get install -y openjdk-11-jdk'
-                sh 'java -version'
-            }
-        }
-
-        stage('Install dependencies') {
+        stage('Prepare Environment') {
             steps {
                 sh '''
-                sudo apt-get update -qy
-                sudo apt-get install -y curl jq maven npm gnupg
-                curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-                echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-                sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+                    apt-get update -qy
+                    apt-get install -y curl jq maven npm
                 '''
             }
         }
 
-        stage('Verify service account key') {
-            steps {
-                withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
-                    sh '''
-                    echo "Debug: GCP_SA_KEY_FILE is ${GCP_SA_KEY_FILE}"
-                    mkdir -p .secure_files
-                    cp "${GCP_SA_KEY_FILE}" .secure_files/service-account.json
-                    if [ ! -f ".secure_files/service-account.json" ]; then
-                        echo "Service account key file not found."
-                        exit 1
-                    else
-                        echo "Service account key file found."
-                        cat .secure_files/service-account.json
-                    fi
-                    '''
-                }
-            }
-        }
-
-        stage('Execute custom script') {
+        stage('Build') {
             steps {
                 script {
-                    sh '''
-                    chmod +x ./revision1.sh
-                    ls -l ./revision1.sh
-                    ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
-                    '''
+                    withCredentials([file(credentialsId: 'secure.file', variable: 'SERVICE_ACCOUNT_KEY')]) {
+                        // Install required dependencies
+                        sh '''
+                            apt-get install -y gnupg
+                            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+                            echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                            apt-get update && apt-get install -y google-cloud-sdk
+                        '''
+
+                        // Authenticate with the service account key
+                        sh '''
+                            gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_KEY
+                        '''
+
+                        // SECURE_FILES_DOWNLOAD
+                        sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
+                        
+                        // Execute bash script to get access token & stable_revision_number
+                        sh 'source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+                        
+                        // Set the access token & stable_revision_number as environment variables for later use in the pipeline
+                        script {
+                            def accessToken = sh(script: 'echo $access_token', returnStdout: true).trim()
+                            def stableRevisionNumber = sh(script: 'echo $stable_revision_number', returnStdout: true).trim()
+                            env.access_token = accessToken
+                            env.stable_revision_number = stableRevisionNumber
+                        }
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'build.env', allowEmptyArchive: true
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
+                script {
+                    echo "stable revision at stage deploy: ${env.stable_revision_number}"
                     sh '''
-                    export GOOGLE_APPLICATION_CREDENTIALS=$WORKSPACE/.secure_files/service-account.json
-                    echo "GOOGLE_APPLICATION_CREDENTIALS is set to $GOOGLE_APPLICATION_CREDENTIALS"
-                    mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
-                    -Dorg=${ORG} \
-                    -P${APIGEE_ENVIRONMENT} \
-                    -e -X
+                        mvn clean install -f $WORKSPACE/$PROXY_NAME/pom.xml \
+                            -P$APIGEE_ENVIRONMENT \
+                            -Dorg=$ORG \
+                            -Dbearer=$access_token
                     '''
                 }
             }
+            // Assuming 'build' stage needs to be completed successfully before 'deploy' stage
+            // This is handled by default in Jenkins pipeline.
         }
+
+        // Uncomment and complete the following stages if needed:
+
+        /*
+        stage('Integration Test') {
+            steps {
+                script {
+                    echo "stable revision at stage integration_test: ${env.stable_revision_number}"
+                    sh '''
+                        bash ./integration.sh $ORG $base64encoded $NEWMAN_TARGET_URL
+                    '''
+                }
+            }
+            post {
+                success {
+                    junit 'junitReport.xml'
+                }
+            }
+        }
+
+        stage('Undeploy') {
+            steps {
+                script {
+                    echo "stable revision at stage integration_test: ${env.stable_revision_number}"
+                    sh '''
+                        cd $WORKSPACE  // Set the working directory to the project root
+                        bash ./undeploy.sh $ORG $base64encoded $PROXY_NAME $stable_revision_number $APIGEE_ENVIRONMENT
+                    '''
+                }
+            }
+            when {
+                failed()
+            }
+        }
+        */
     }
 
     post {
