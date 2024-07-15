@@ -1,40 +1,54 @@
 #!/bin/bash
 
 ORG=$1
-PROXY_NAME=$2
+ProxyName=$2
 ENV=$3
 
-echo "ORG: ${ORG}"
-echo "ProxyName: ${PROXY_NAME}"
-echo "ENV: ${ENV}"
+echo "ORG: $ORG"
+echo "ProxyName: $ProxyName"
+echo "ENV: $ENV"
 
-SERVICE_ACCOUNT_KEY_FILE=".secure_files/service-account.json"
+# Set the path to your service account JSON key file
+KEY_FILE=".secure_files/service-account.json"
 
-if [ ! -f "${SERVICE_ACCOUNT_KEY_FILE}" ]; then
-  echo "Service account key file '${SERVICE_ACCOUNT_KEY_FILE}' not found."
+echo "$KEY_FILE"
+
+# Check if the key file exists
+if [ ! -f "$KEY_FILE" ]; then
+  echo "Service account key file '$KEY_FILE' not found."
   exit 1
 fi
 
-# Activate the service account
-gcloud auth activate-service-account --key-file="${SERVICE_ACCOUNT_KEY_FILE}"
+# Get the access token from Apigee
+gcloud auth activate-service-account --key-file="$KEY_FILE"
+access_token=$(gcloud auth print-access-token)
 
-# Set the project
-gcloud config set project ${ORG}
+# Check if access token retrieval was successful
+if [ -z "$access_token" ]; then
+  echo "Failed to obtain access token. Check your Apigee credentials and try again."
+  exit 1
+fi
 
-# Example of listing APIs, you can replace this with your custom commands
-echo "Listing APIs in project ${ORG} for environment ${ENV}..."
+# Print the access token
+echo "Access Token: $access_token"
 
-# Replace the following line with your actual script logic
-# This is just an example command, modify as per your requirements
-gcloud apigee apis list --organization=${ORG} --environment=${ENV}
+# Save the access token in the environment file
+echo "access_token=$access_token" >> $GITHUB_ENV
 
-# Additional script logic can be added below
-# Example of deploying a proxy
-# Replace the following lines with your actual deployment commands
-echo "Deploying API proxy ${PROXY_NAME} to environment ${ENV}..."
+# Set output for GitHub Actions
+echo "::set-output name=access_token::$access_token"
 
-# Example command to deploy an API proxy
-# Modify according to your deployment requirements
-gcloud apigee apis deploy ${PROXY_NAME} --environment=${ENV} --organization=${ORG}
+# Get stable_revision_number using access_token
+revision_info=$(curl -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$ProxyName/deployments")
 
-echo "Deployment completed."
+# Check if the curl command was successful
+if [ $? -eq 0 ]; then
+    # Extract the revision number using jq, handling the case where .deployments is null or empty
+    stable_revision_number=$(echo "$revision_info" | jq -r ".deployments[0]?.revision // null")
+    echo "Stable Revision: $stable_revision_number"
+    # Save the stable revision number in the environment file
+    echo "stable_revision_number=$stable_revision_number" >> .secure_files/build.env
+else
+    # Handle the case where the curl command failed
+    echo "Error: Failed to retrieve API deployments."
+fi
