@@ -13,8 +13,12 @@ pipeline {
         stage('Prepare Environment') {
             steps {
                 sh '''
-                    apt-get update -qy
-                    apt-get install -y curl jq maven npm
+                    sudo apt-get update -qy
+                    sudo apt-get install -y curl jq maven npm
+                    sudo apt-get install -y gnupg
+                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                    sudo apt-get update && sudo apt-get install -y google-cloud-sdk
                 '''
             }
         }
@@ -23,14 +27,6 @@ pipeline {
             steps {
                 script {
                     withCredentials([file(credentialsId: 'secure.file', variable: 'SERVICE_ACCOUNT_KEY')]) {
-                        // Install required dependencies
-                        sh '''
-                            apt-get install -y gnupg
-                            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-                            echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                            apt-get update && apt-get install -y google-cloud-sdk
-                        '''
-
                         // Authenticate with the service account key
                         sh '''
                             gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_KEY
@@ -71,8 +67,6 @@ pipeline {
                     '''
                 }
             }
-            // Assuming 'build' stage needs to be completed successfully before 'deploy' stage
-            // This is handled by default in Jenkins pipeline.
         }
 
         // Uncomment and complete the following stages if needed:
