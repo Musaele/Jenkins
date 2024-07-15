@@ -3,12 +3,15 @@
 ORG=$1
 ProxyName=$2
 ENV=$3
-KEY_FILE=$4
 
 echo "ORG: $ORG"
 echo "ProxyName: $ProxyName"
 echo "ENV: $ENV"
-echo "Service account key file: $KEY_FILE"
+
+# Set the path to your service account JSON key file
+KEY_FILE=".secure_files/service-account.json"
+
+echo "$KEY_FILE"
 
 # Check if the key file exists
 if [ ! -f "$KEY_FILE" ]; then
