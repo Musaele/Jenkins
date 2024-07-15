@@ -5,7 +5,6 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        KEY_FILE_PATH = 'service_file'
     }
 
     stages {
@@ -20,7 +19,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_JSON')]) {
+                withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_JSON'), string(credentialsId: 'SECURE_FILES_TOKEN', variable: 'AUTH_TOKEN')]) {
                     script {
                         sh '''
                             sudo apt-get install -y gnupg
@@ -30,6 +29,7 @@ pipeline {
                             # SECURE_FILES_DOWNLOAD
                             curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
                             export AUTH_TOKEN=$AUTH_TOKEN
+                            export SECURE_FILES_TOKEN=$AUTH_TOKEN
                             # Executing bash script to get access token & stable_revision_number
                             chmod +x ./revision1.sh
                             ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT
