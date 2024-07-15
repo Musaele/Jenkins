@@ -8,87 +8,105 @@ pipeline {
     }
 
     stages {
-        stage('Before Script') {
-            steps {
-                sh '''
-                    sudo apt-get update -qy
-                    sudo apt-get install -y curl jq maven npm
-                '''
-            }
-        }
-
         stage('Build') {
             steps {
-                withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_JSON'), string(credentialsId: 'SECURE_FILES_TOKEN', variable: 'AUTH_TOKEN')]) {
+                checkout scm
+                
+                script {
+                    // List root directory contents after checkout
+                    sh 'ls -al ${WORKSPACE}'
+                }
+                
+                // Set up JDK 11
+                tools {
+                    jdk 'jdk11'
+                }
+
+                // Install dependencies
+                steps {
                     script {
-                        sh '''
-                            sudo apt-get install -y gnupg
-                            curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-                            echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                            sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-                            # SECURE_FILES_DOWNLOAD
-                            curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
-                            export AUTH_TOKEN=$AUTH_TOKEN
-                            export SECURE_FILES_TOKEN=$AUTH_TOKEN
-                            # Executing bash script to get access token & stable_revision_number
-                            chmod +x ./revision1.sh
-                            ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT
-                            # Set the access token & stable_revision_number as environment variables for later use in the pipeline
-                            source .secure_files/build.env
-                        '''
+                        sh 'sudo apt-get update -qy'
+                        sh 'sudo apt-get install -y curl jq maven npm gnupg'
+                        sh 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -'
+                        sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
+                        sh 'sudo apt-get update && sudo apt-get install -y google-cloud-sdk'
                     }
                 }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: '.secure_files/build.env', allowEmptyArchive: true
+
+                // Verify base64-encoded service account key
+                steps {
+                    script {
+                        sh 'echo "Base64-encoded service account key ${GCP_SA_KEY_BASE64}"'
+                    }
+                }
+
+                // Decode and write service account key to file
+                steps {
+                    script {
+                        sh 'mkdir -p .secure_files'
+                        // Use the secret file stored in Jenkins
+                        withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                            sh 'cp $SERVICE_ACCOUNT_FILE .secure_files/service-account.json'
+                        }
+                    }
+                }
+
+                // Check service account key file
+                steps {
+                    script {
+                        sh 'echo "Service account key file content:"'
+                        sh 'cat .secure_files/service-account.json'
+                    }
+                }
+
+                // Make revision1.sh executable
+                steps {
+                    script {
+                        sh 'chmod +x ./revision1.sh'
+                    }
+                }
+
+                // Execute custom script to get token
+                steps {
+                    script {
+                        def getAccessToken = sh(script: './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}', returnStdout: true).trim()
+                        currentBuild.description = "Access token: ${getAccessToken}"
+                        echo "Access token obtained: ${getAccessToken}"
+                    }
                 }
             }
         }
 
         stage('Deploy') {
+            dependsOn 'Build'
+
             steps {
-                script {
-                    sh '''
-                        echo "stable revision at stage deploy: $stable_revision_number"
-                        mvn clean install -f $CI_PROJECT_DIR/$PROXY_NAME/pom.xml \
-                            -P$APIGEE_ENVIRONMENT \
-                            -Dorg=$ORG \
-                            -Dbearer=$access_token
-                    '''
+                checkout scm
+                
+                // Echo access token
+                steps {
+                    script {
+                        echo "Access token before Maven build and deploy ${currentBuild.description}"
+                    }
+                }
+
+                // Debug environment variables
+                steps {
+                    script {
+                        echo "ORG: ${ORG}"
+                        echo "PROXY_NAME: ${PROXY_NAME}"
+                        echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
+                        echo "Access token: ${currentBuild.description}"
+                    }
+                }
+
+                // Maven build and deploy
+                steps {
+                    script {
+                        sh 'mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml -Dorg=${ORG} -P${APIGEE_ENVIRONMENT} -Dbearer=${currentBuild.description} -e -X'
+                    }
                 }
             }
         }
-
-        /*
-        stage('Integration Test') {
-            steps {
-                script {
-                    sh '''
-                        echo "stable revision at stage integration_test: $stable_revision_number"
-                        bash ./integration.sh $ORG $base64encoded $NEWMAN_TARGET_URL
-                    '''
-                }
-            }
-
-            post {
-                success {
-                    junit 'junitReport.xml'
-                }
-            }
-        }
-
-        stage('Undeploy') {
-            steps {
-                script {
-                    sh '''
-                        echo "stable revision at stage undeploy: $stable_revision_number"
-                        cd $CI_PROJECT_DIR  // Set the working directory to the project root
-                        bash ./undeploy.sh $ORG $base64encoded $PROXY_NAME $stable_revision_number $APIGEE_ENVIRONMENT
-                    '''
-                }
-            }
-        }
-        */
     }
 }
