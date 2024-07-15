@@ -50,17 +50,18 @@ pipeline {
             }
         }
 
-      stage('Execute custom script') {
-    steps {
-        script {
-            sh '''
-            ls -l ./revision1.sh  # Check permissions
-            id  # Print user info
-            ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
-            '''
+        stage('Execute custom script') {
+            steps {
+                script {
+                    sh '''
+                    chmod +x ./revision1.sh
+                    ls -l ./revision1.sh
+                    ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
+                    '''
+                }
+            }
         }
-    }
-}
+
         stage('Deploy') {
             steps {
                 checkout scm
