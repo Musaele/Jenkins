@@ -10,26 +10,28 @@ pipeline {
     stages {
         stage('Prepare Environment') {
             steps {
-                // Install necessary tools
-                sh '''
-                    sudo apt-get update -qy
-                    sudo apt-get install -y curl jq maven npm gnupg
-                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-                    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                    sudo apt-get update
-                    sudo apt-get install -y google-cloud-sdk
-                '''
+                script {
+                    // Update package repositories and install necessary tools
+                    sh '''
+                        sudo apt-get update -qy
+                        sudo apt-get install -y curl jq maven npm gnupg
+                        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                        sudo apt-get update
+                        sudo apt-get install -y google-cloud-sdk
+                    '''
+                }
             }
         }
 
         stage('Build') {
             steps {
                 script {
-                    // Load service account key from Jenkins credentials
-                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_KEY_PATH')]) {
-                        // Execute your revision1.sh script passing required parameters
-                        sh "./revision1.sh '$ORG' '$PROXY_NAME' '$APIGEE_ENVIRONMENT'"
-                    }
+                    // Ensure revision1.sh has execute permissions
+                    sh 'chmod +x ./revision1.sh'
+
+                    // Execute revision1.sh passing parameters
+                    sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
                 }
             }
             post {
@@ -42,11 +44,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Access stable_revision_number from build.env
-                    def stableRevisionNumber = readFile('.secure_files/build.env').trim().split('=')[1]
-                    echo "Stable Revision: $stableRevisionNumber"
-
-                    // Example deploy command (replace with your actual deploy script)
+                    echo "Deploying..."
+                    // Add deployment steps here, e.g., deploying using Maven
                     sh '''
                         mvn clean install -f $WORKSPACE/$PROXY_NAME/pom.xml \
                             -P$APIGEE_ENVIRONMENT \
