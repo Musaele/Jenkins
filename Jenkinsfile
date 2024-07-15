@@ -78,33 +78,26 @@ pipeline {
         }
 
         stage('Deploy') {
-            dependsOn 'Build'
-
             steps {
+                // Checkout code again (if needed)
                 checkout scm
                 
                 // Echo access token
-                steps {
-                    script {
-                        echo "Access token before Maven build and deploy ${currentBuild.description}"
-                    }
+                script {
+                    echo "Access token before Maven build and deploy ${currentBuild.description}"
                 }
 
                 // Debug environment variables
-                steps {
-                    script {
-                        echo "ORG: ${ORG}"
-                        echo "PROXY_NAME: ${PROXY_NAME}"
-                        echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
-                        echo "Access token: ${currentBuild.description}"
-                    }
+                script {
+                    echo "ORG: ${ORG}"
+                    echo "PROXY_NAME: ${PROXY_NAME}"
+                    echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
+                    echo "Access token: ${currentBuild.description}"
                 }
 
                 // Maven build and deploy
-                steps {
-                    script {
-                        sh 'mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml -Dorg=${ORG} -P${APIGEE_ENVIRONMENT} -Dbearer=${currentBuild.description} -e -X'
-                    }
+                script {
+                    sh 'mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml -Dorg=${ORG} -P${APIGEE_ENVIRONMENT} -Dbearer=${currentBuild.description} -e -X'
                 }
             }
         }
