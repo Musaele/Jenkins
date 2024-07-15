@@ -64,8 +64,12 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                checkout scm
                 script {
+                    checkout scm
+                    sh '''
+                    chmod +x ./revision1.sh
+                    ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
+                    '''
                     def accessToken = sh(script: './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}', returnStdout: true).trim()
                     sh '''
                     echo "ORG: ${ORG}"
