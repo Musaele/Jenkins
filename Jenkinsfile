@@ -5,8 +5,6 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        //MICROSOFT_TEAMS_WEBHOOK_URL = 'https://abacusglobal.webhook.office.com/webhookb2/560704ee-2f2d-463d-9ba4-1302c93ced65@51f97e66-3fe9-450d-88ac-7a2380c3f3c6/IncomingWebhook/01173ce910434faa8422545a107ec368/60ec973a-03f8-40b3-884e-0ae804b3ddab'
-        //NEWMAN_TARGET_URL = 'NoTargetProxy_GET_Req_Pass.postman_collection.json'
     }
 
     stages {
@@ -14,11 +12,11 @@ pipeline {
             steps {
                 sh '''
                     sudo apt-get update -qy
-                    sudo apt-get install -y curl jq maven npm
-                    sudo apt-get install -y gnupg
+                    sudo apt-get install -y curl jq maven npm gnupg
                     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
                     echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                    sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+                    sudo apt-get update
+                    sudo apt-get install -y google-cloud-sdk
                 '''
             }
         }
@@ -26,7 +24,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    withCredentials([file(credentialsId: 'secure.file', variable: 'SERVICE_ACCOUNT_KEY')]) {
+                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_KEY')]) {
                         // Authenticate with the service account key
                         sh '''
                             gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_KEY
