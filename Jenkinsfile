@@ -71,11 +71,12 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
                     sh '''
-                    export GOOGLE_APPLICATION_CREDENTIALS=.secure_files/service-account.json
+                    export GOOGLE_APPLICATION_CREDENTIALS=$WORKSPACE/.secure_files/service-account.json
+                    echo "GOOGLE_APPLICATION_CREDENTIALS is set to $GOOGLE_APPLICATION_CREDENTIALS"
                     mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
                     -Dorg=${ORG} \
                     -P${APIGEE_ENVIRONMENT} \
-                    -Dbearer=${ACCESS_TOKEN} -e -X
+                    -e -X
                     '''
                 }
             }
