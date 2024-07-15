@@ -34,6 +34,8 @@ pipeline {
                     sh 'mkdir -p .secure_files'
                     // Use the secret file stored in Jenkins
                     withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE')]) {
+                        // Make sure .secure_files exists before copying
+                        sh 'mkdir -p .secure_files'
                         sh 'cp $SERVICE_ACCOUNT_FILE .secure_files/service-account.json'
                     }
                 }
