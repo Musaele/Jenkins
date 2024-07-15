@@ -5,6 +5,7 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
+        SERVICE_ACCOUNT_KEY_CONTENT = "" // Define an environment variable to store the file content
     }
 
     stages {
@@ -24,28 +25,39 @@ pipeline {
             }
         }
 
+        stage('Read Service Account Key') {
+            steps {
+                script {
+                    // Read the content of the service account key into an environment variable
+                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_KEY_PATH')]) {
+                        SERVICE_ACCOUNT_KEY_CONTENT = sh(script: "cat \$SERVICE_ACCOUNT_KEY_PATH", returnStdout: true).trim()
+                    }
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
-                    // Authenticate with the service account key
-                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_KEY')]) {
-                        sh '''
-                            gcloud auth activate-service-account --key-file=$SERVICE_ACCOUNT_KEY
-                        '''
+                    // Authenticate with the service account key using the environment variable
+                    sh '''
+                        echo "$SERVICE_ACCOUNT_KEY_CONTENT" > /tmp/service_account_key.json  // Write content to a temporary file
+                        gcloud auth activate-service-account --key-file=/tmp/service_account_key.json
+                    '''
 
-                        // Download additional secure files or execute necessary setup scripts
-                        sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
-
-                        // Execute bash script to retrieve necessary environment variables
-                        sh 'source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
-
-                        // Capture and set environment variables for later stages
-                        script {
-                            def accessToken = sh(script: 'echo $access_token', returnStdout: true).trim()
-                            def stableRevisionNumber = sh(script: 'echo $stable_revision_number', returnStdout: true).trim()
-                            env.access_token = accessToken
-                            env.stable_revision_number = stableRevisionNumber
-                        }
+                    // Proceed with other build steps using the authenticated credentials
+                    // Example: Download additional secure files or execute necessary setup scripts
+                    sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
+                    
+                    // Execute bash script to retrieve necessary environment variables
+                    sh 'source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+                    
+                    // Capture and set environment variables for later stages
+                    script {
+                        def accessToken = sh(script: 'echo $access_token', returnStdout: true).trim()
+                        def stableRevisionNumber = sh(script: 'echo $stable_revision_number', returnStdout: true).trim()
+                        env.access_token = accessToken
+                        env.stable_revision_number = stableRevisionNumber
                     }
                 }
             }
