@@ -8,19 +8,20 @@ echo "ORG: $ORG"
 echo "ProxyName: $ProxyName"
 echo "ENV: $ENV"
 
-# Set the path to your service account JSON key file
-KEY_FILE="./secure_files/service-account.json"
+# Set the path where Jenkins mounts the secret file
+SECRET_FILE_PATH="/var/lib/jenkins/workspace/Jenkins@tmp/secretFiles/service_file"
 
-echo "$KEY_FILE"
-
-# Check if the key file exists
-if [ ! -f "$KEY_FILE" ]; then
-  echo "Service account key file '$KEY_FILE' not found."
+# Ensure the file exists (note: Jenkins manages file permissions itself)
+if [ ! -f "$SECRET_FILE_PATH" ]; then
+  echo "Service account key file '$SECRET_FILE_PATH' not found."
   exit 1
 fi
 
+# Copy the secret file to a location accessible to your script
+cp "$SECRET_FILE_PATH" ./secure_files/service-account.json
+
 # Get the access token from Apigee
-gcloud auth activate-service-account --key-file="$KEY_FILE"
+gcloud auth activate-service-account --key-file="./secure_files/service-account.json"
 access_token=$(gcloud auth print-access-token)
 
 # Check if access token retrieval was successful
