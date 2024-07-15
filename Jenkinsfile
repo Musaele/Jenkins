@@ -13,8 +13,8 @@ pipeline {
         stage('Before Script') {
             steps {
                 sh '''
-                    apt-get update -qy
-                    apt-get install -y curl jq maven npm
+                    sudo apt-get update -qy
+                    sudo apt-get install -y curl jq maven npm
                 '''
             }
         }
@@ -24,10 +24,10 @@ pipeline {
                 script {
                     // Install required dependencies
                     sh '''
-                        apt-get install -y gnupg
-                        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                        apt-get update && apt-get install -y google-cloud-sdk
+                        sudo apt-get install -y gnupg
+                        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                        sudo apt-get update && sudo apt-get install -y google-cloud-sdk
                         // SECURE_FILES_DOWNLOAD
                         curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
                         // Executing bash script to get access token & stable_revision_number
