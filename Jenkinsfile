@@ -29,12 +29,7 @@ pipeline {
                     sh 'sudo apt-get update && sudo apt-get install -y google-cloud-sdk'
                 }
 
-                // Verify base64-encoded service account key
-                script {
-                    sh "echo 'Base64-encoded service account key ${GCP_SA_KEY_BASE64}'"
-                }
-
-                // Decode and write service account key to file
+                // Retrieve and write service account key to file
                 script {
                     sh 'mkdir -p .secure_files'
                     // Use the secret file stored in Jenkins
@@ -49,12 +44,12 @@ pipeline {
                     sh 'cat .secure_files/service-account.json'
                 }
 
-                // Make revision1.sh executable
+                // Make revision1.sh executable (if needed)
                 script {
                     sh 'chmod +x ./revision1.sh'
                 }
 
-                // Execute custom script to get token
+                // Execute custom script to get token (if needed)
                 script {
                     def getAccessToken = sh(script: './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}', returnStdout: true).trim()
                     currentBuild.description = "Access token: ${getAccessToken}"
@@ -68,12 +63,12 @@ pipeline {
                 // Checkout code again (if needed)
                 checkout scm
                 
-                // Echo access token
+                // Echo access token (if needed)
                 script {
                     echo "Access token before Maven build and deploy ${currentBuild.description}"
                 }
 
-                // Debug environment variables
+                // Debug environment variables (if needed)
                 script {
                     echo "ORG: ${ORG}"
                     echo "PROXY_NAME: ${PROXY_NAME}"
