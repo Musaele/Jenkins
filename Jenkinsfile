@@ -43,8 +43,13 @@ pipeline {
                     echo "Debug: GCP_SA_KEY_FILE is ${GCP_SA_KEY_FILE}"
                     mkdir -p .secure_files
                     cp "${GCP_SA_KEY_FILE}" .secure_files/service-account.json
-                    echo "Service account key file content:"
-                    cat .secure_files/service-account.json
+                    if [ ! -f ".secure_files/service-account.json" ]; then
+                        echo "Service account key file not found."
+                        exit 1
+                    else
+                        echo "Service account key file found."
+                        cat .secure_files/service-account.json
+                    fi
                     '''
                 }
             }
@@ -64,24 +69,13 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                script {
-                    checkout scm
+                withCredentials([file(credentialsId: 'service_file', variable: 'GCP_SA_KEY_FILE')]) {
                     sh '''
-                    chmod +x ./revision1.sh
-                    ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
-                    '''
-                    def accessToken = sh(script: './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}', returnStdout: true).trim()
-                    sh '''
-                    echo "ORG: ${ORG}"
-                    echo "PROXY_NAME: ${PROXY_NAME}"
-                    echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
-                    echo "Access token: ${accessToken}"
-                    '''
-                    sh '''
+                    export GOOGLE_APPLICATION_CREDENTIALS=.secure_files/service-account.json
                     mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml \
                     -Dorg=${ORG} \
                     -P${APIGEE_ENVIRONMENT} \
-                    -Dbearer=${accessToken} -e -X
+                    -Dbearer=${ACCESS_TOKEN} -e -X
                     '''
                 }
             }
