@@ -28,11 +28,11 @@ pipeline {
                         curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
                         echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
                         sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-                        // SECURE_FILES_DOWNLOAD
+                        # SECURE_FILES_DOWNLOAD
                         curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
-                        // Executing bash script to get access token & stable_revision_number
+                        # Executing bash script to get access token & stable_revision_number
                         source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT
-                        // Set the access token & stable_revision_number as environment variables for later use in the pipeline
+                        # Set the access token & stable_revision_number as environment variables for later use in the pipeline
                         echo "access_token=$access_token" >> build.env
                         echo "stable_revision_number=$stable_revision_number" >> build.env
                     '''
