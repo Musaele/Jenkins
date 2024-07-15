@@ -17,10 +17,13 @@ pipeline {
                     sh 'ls -al ${WORKSPACE}'
                 }
                 
-                // Set up JDK 11
-                tools {
-                    jdk 'jdk11'
-                }
+               stage('Set up JDK 11') {
+            steps {
+                sh 'sudo apt-get update -qy'
+                sh 'sudo apt-get install -y openjdk-11-jdk'
+                sh 'java -version'
+            }
+        }
 
                 // Install dependencies
                 steps {
