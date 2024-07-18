@@ -45,6 +45,7 @@ pipeline {
                         writeFile file: '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json', text: serviceAccountKey
                         sh '''
                         mkdir -p .secure_files
+                        cd .secure_files
                         echo "Service account key file content:"
                         cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
                         '''
