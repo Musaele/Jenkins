@@ -31,9 +31,7 @@ pipeline {
                 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
                 echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
                 sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-                pwd
                 '''
-            
             }
         }
 
@@ -45,7 +43,6 @@ pipeline {
                         writeFile file: '.secure_files/abacus-apigee-demo-a9fffc7cc15c.json', text: serviceAccountKey
                         sh '''
                         mkdir -p .secure_files
-                        cd .secure_files
                         echo "Service account key file content:"
                         cat .secure_files/abacus-apigee-demo-a9fffc7cc15c.json
                         '''
@@ -66,7 +63,6 @@ pipeline {
             }
         }
 
-        /*
         stage('Deploy') {
             steps {
                 checkout scm
@@ -85,7 +81,6 @@ pipeline {
                 '''
             }
         }
-        */
     }
 
     post {
