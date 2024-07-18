@@ -14,11 +14,11 @@ pipeline {
                 script {
                     // Installing required dependencies
                     sh '''
-                    apt-get update -qy
-                    apt-get install -y curl jq maven npm gnupg
-                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-                    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                    apt-get update && apt-get install -y google-cloud-sdk
+                    sudo apt-get update -qy
+                    sudo apt-get install -y curl jq maven npm gnupg
+                    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                    echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                    sudo apt-get update && sudo apt-get install -y google-cloud-sdk
                     curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
                     source ./revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}
                     echo "access_token=$access_token" >> build.env
