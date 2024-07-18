@@ -54,6 +54,26 @@ pipeline {
                       echo "Service account key file '$KEY_FILE' not found."
                       exit 1
                     fi
+                     stages {
+        stage('Generate Access Token') {
+            steps {
+                script {
+                    // Activate service account using the key file
+                    sh "gcloud auth activate-service-account --key-file=${KEY_FILE}"
+
+                    // Get access token
+                    def accessToken = sh(script: 'gcloud auth print-access-token', returnStdout: true).trim()
+                    echo "Access Token: ${accessToken}"
+
+                    // Save the access token to an environment variable or a file if needed
+                    withCredentials([string(credentialsId: 'apigee_credentials', variable: 'APIGEE_CREDENTIALS')]) {
+                        sh """
+                            export ACCESS_TOKEN=${accessToken}
+                            echo "ACCESS_TOKEN=${accessToken}" >> .secure_files/build.env
+                        """
+                    }
+                }
+            }
 
                     # Get the access token from Apigee
                     gcloud auth activate-service-account --key-file="$KEY_FILE"
