@@ -11,76 +11,51 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    // List root directory contents after checkout
-                    sh "ls -al ${WORKSPACE}"
-                }
-                
-                // Set up JDK 11
-                sh 'sudo apt-get update -qy'
-                sh 'sudo apt-get install -y openjdk-11-jdk'
-                sh 'java -version'
-
-                // Install dependencies
-                script {
-                    sh 'sudo apt-get update -qy'
-                    sh 'sudo apt-get install -y curl jq maven npm gnupg'
-                    sh 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -'
-                    sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
-                    sh 'sudo apt-get update && sudo apt-get install -y google-cloud-sdk'
-                }
-
-                // Retrieve and write service account key to file
-                script {
-                    sh 'mkdir -p .secure_files'
-                    // Use the secret file stored in Jenkins
-                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE')]) {
-                        // Make sure .secure_files exists before copying
-                        sh 'mkdir -p .secure_files'
-                        sh 'cp $SERVICE_ACCOUNT_FILE .secure_files/service-account.json'
-                    }
-                }
-
-                // Check service account key file
-                script {
-                    sh 'echo "Service account key file content:"'
-                    sh 'cat .secure_files/service-account.json'
-                }
-
-                // Make revision1.sh executable (if needed)
-                script {
-                    sh 'chmod +x ./revision1.sh'
-                }
-
-                // Execute custom script to get token (if needed)
-                script {
-                    def getAccessToken = sh(script: './revision1.sh ${ORG} ${PROXY_NAME} ${APIGEE_ENVIRONMENT}', returnStdout: true).trim()
-                    currentBuild.description = "Access token: ${getAccessToken}"
-                    echo "Access token obtained: ${getAccessToken}"
+                    sh '''
+                        apt-get update -qy
+                        apt-get install -y curl jq maven npm gnupg
+                        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                        apt-get update && apt-get install -y google-cloud-sdk
+                        
+                        # SECURE_FILES_DOWNLOAD
+                        curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+                        
+                        # Executing bash script to get access token & stable_revision_number
+                        source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT
+                        
+                        # Set the access token & stable_revision_number as environment variables for later use in the pipeline
+                        echo "access_token=$access_token" >> build.env
+                        echo "stable_revision_number=$stable_revision_number" >> build.env
+                    '''
+                    archiveArtifacts artifacts: 'build.env', fingerprint: true
                 }
             }
         }
 
         stage('Deploy') {
             steps {
-                // Checkout code again (if needed)
-                checkout scm
-                
-                // Echo access token (if needed)
                 script {
-                    echo "Access token before Maven build and deploy ${currentBuild.description}"
-                }
+                    def buildEnv = readFile 'build.env'
+                    def access_token = buildEnv.split('\n').find { it.startsWith('access_token=') }?.split('=')[1]?.trim()
+                    def stable_revision_number = buildEnv.split('\n').find { it.startsWith('stable_revision_number=') }?.split('=')[1]?.trim()
 
-                // Debug environment variables (if needed)
-                script {
-                    echo "ORG: ${ORG}"
-                    echo "PROXY_NAME: ${PROXY_NAME}"
-                    echo "APIGEE_ENVIRONMENT: ${APIGEE_ENVIRONMENT}"
-                    echo "Access token: ${currentBuild.description}"
-                }
+                    echo "stable revision at stage deploy: ${stable_revision_number}"
 
-                // Maven build and deploy
-                sh "mvn clean install -f ${WORKSPACE}/${PROXY_NAME}/pom.xml -Dorg=${ORG} -P${APIGEE_ENVIRONMENT} -Dbearer='${currentBuild.description}' -e -X"
+                    sh """
+                        mvn clean install -f ${env.WORKSPACE}/${PROXY_NAME}/pom.xml \
+                            -P${APIGEE_ENVIRONMENT} \
+                            -Dorg=${ORG} \
+                            -Dbearer=${access_token}
+                    """
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
