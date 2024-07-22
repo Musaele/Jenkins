@@ -18,12 +18,12 @@ pipeline {
 
                         // Install Google Cloud SDK
                         sh 'sudo curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -'
-                        sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
-                        sh 'sudo apt-get update && apt-get install -y google-cloud-sdk'
+                        sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
+                        sh 'sudo apt-get update && sudo apt-get install -y google-cloud-sdk'
 
                         // Download secure files and execute revision1.sh
-                        sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
-                        sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+                        sh 'sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash'
+                        sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
                         // Set Google Cloud credentials using the service account file
                         withEnv(["GOOGLE_APPLICATION_CREDENTIALS=${SERVICE_FILE}"]) {
@@ -48,7 +48,7 @@ pipeline {
 
                     // Deploy using Maven
                     sh "echo 'stable revision at stage deploy: ${stable_revision_number}'"
-                    sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=\$access_token"
+                    sh "sudo mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=\$access_token"
                 }
             }
         }
