@@ -27,6 +27,7 @@ pipeline {
           // Download secure files within the temporary directory
           sh 'sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash -c "cat > /tmp/download/installer"'
           sh'pwd'
+          sh 'sudo chmod +x revision1.sh'
           // Replace with your script or commands to get access token and revision number
            sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
