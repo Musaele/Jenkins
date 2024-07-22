@@ -6,6 +6,8 @@ pipeline {
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
     }
+
+    stages {
         stage('build') {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE')]) {
@@ -63,4 +65,3 @@ pipeline {
         }
     }
 }
-
