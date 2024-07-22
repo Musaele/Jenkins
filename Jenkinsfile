@@ -10,11 +10,15 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE')]) {
+                withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE'), 
+                                string(credentialsId: 'auth_token', variable: 'AUTH_TOKEN')]) { // Assuming 'auth_token' is the ID for the required token
                     script {
                         // Install required dependencies
                         sh 'sudo apt-get update -qy'
                         sh 'sudo apt-get install -y curl jq maven npm gnupg'
+
+                        // Clean up
+                        sh 'sudo apt autoremove -y'
 
                         // Install Google Cloud SDK
                         sh 'sudo curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -'
@@ -23,6 +27,7 @@ pipeline {
 
                         // Download secure files and execute revision1.sh
                         sh 'sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash'
+                        sh 'sudo download-secure-files --auth-token=${AUTH_TOKEN}'
                         sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
                         // Set Google Cloud credentials using the service account file
