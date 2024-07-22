@@ -6,7 +6,8 @@ pipeline {
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
     }
- stages {
+
+    stages {
         stage('Checkout') {
             steps {
                 // Checkout the repository using HTTPS credentials
@@ -15,10 +16,11 @@ pipeline {
                           userRemoteConfigs: [[
                               credentialsId: 'Git_credentials',  // Use your Jenkins credential ID here
                               url: 'https://github.com/Musaele/Jenkins_implementation.git'  // Your GitHub repository HTTPS URL
-                          ]]])
+                          ]]
+                ])
             }
         }
-    stages {
+
         stage('build') {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE')]) {
@@ -26,16 +28,16 @@ pipeline {
                         // Install required dependencies
                         sh 'apt-get update -qy'
                         sh 'apt-get install -y curl jq maven npm gnupg'
-                        
+
                         // Install Google Cloud SDK
                         sh 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -'
                         sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
                         sh 'apt-get update && apt-get install -y google-cloud-sdk'
-                        
+
                         // Download secure files and execute revision1.sh
                         sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
                         sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
-                        
+
                         // Set Google Cloud credentials using the service account file
                         withEnv(["GOOGLE_APPLICATION_CREDENTIALS=${SERVICE_FILE}"]) {
                             // Write environment variables to build.env artifact
@@ -56,14 +58,11 @@ pipeline {
                 script {
                     // Read stable revision from previous stage
                     def stable_revision_number = readFile 'build.env'
-                    
+
                     // Deploy using Maven
                     sh "echo 'stable revision at stage deploy: ${stable_revision_number}'"
                     sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=\$access_token"
                 }
-            }
-            dependencies {
-                build('build')
             }
         }
     }
@@ -78,5 +77,4 @@ pipeline {
             // office365ConnectorSend webhookUrl: MICROSOFT_TEAMS_WEBHOOK_URL, message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} failed!", status: 'Failure'
         }
     }
-}
 }
