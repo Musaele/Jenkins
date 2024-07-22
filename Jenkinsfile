@@ -6,69 +6,76 @@ pipeline {
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
     }
-
-    stages {
-        stage('Build') {
+ stages {
+        stage('Checkout') {
             steps {
-                script {
-                    // Checkout code
-                    checkout()
-
-                    // Set up JDK 11
-                    tool 'jdk11'
-
-                    // Install dependencies
-                    sh '''
-                        sudo apt-get update -qy
-                        sudo apt-get install -y curl jq maven npm gnupg
-                        curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-                        sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-                    '''
-
-                    // Write service account JSON to file
-                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE')]) {
-                        sh "echo '$SERVICE_ACCOUNT_FILE' > .secure_files/service-account.json"
+                // Checkout the repository using HTTPS credentials
+                checkout([$class: 'GitSCM',
+                          branches: [[name: '*/main']],  // Use '*/main' for the 'main' branch
+                          userRemoteConfigs: [[
+                              credentialsId: 'Git_credentials',  // Use your Jenkins credential ID here
+                              url: 'https://github.com/Musaele/Jenkins_implementation.git'  // Your GitHub repository HTTPS URL
+                          ]]])
+            }
+        }
+    stages {
+        stage('build') {
+            steps {
+                withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE')]) {
+                    script {
+                        // Install required dependencies
+                        sh 'apt-get update -qy'
+                        sh 'apt-get install -y curl jq maven npm gnupg'
+                        
+                        // Install Google Cloud SDK
+                        sh 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -'
+                        sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
+                        sh 'apt-get update && apt-get install -y google-cloud-sdk'
+                        
+                        // Download secure files and execute revision1.sh
+                        sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
+                        sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+                        
+                        // Set Google Cloud credentials using the service account file
+                        withEnv(["GOOGLE_APPLICATION_CREDENTIALS=${SERVICE_FILE}"]) {
+                            // Write environment variables to build.env artifact
+                            writeFile file: 'build.env', text: "access_token=${access_token}\nstable_revision_number=${stable_revision_number}\n"
+                        }
                     }
-
-                    // Verify service account key file content
-                    sh 'cat .secure_files/service-account.json'
-
-                    // Make revision1.sh executable
-                    sh 'chmod +x ./revision1.sh'
-
-                    // Execute custom script
-                    def token = sh(script: './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT', returnStdout: true).trim()
-                    currentBuild.description = "Access token: $token"
-                    echo "Access token: $token"
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'build.env'
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('deploy') {
             steps {
                 script {
-                    // Checkout code again if necessary
-                    checkout()
-
-                    // Echo access token
-                    echo "Access token before Maven build and deploy $token"
-
-                    // Debug environment variables
-                    echo "ORG: $ORG"
-                    echo "PROXY_NAME: $PROXY_NAME"
-                    echo "APIGEE_ENVIRONMENT: $APIGEE_ENVIRONMENT"
-                    echo "Access token: $token"
-
-                    // Maven build and deploy
-                    sh '''
-                        mvn clean install -f ${env.WORKSPACE}/${PROXY_NAME}/pom.xml \
-                            -Dorg=$ORG \
-                            -P$APIGEE_ENVIRONMENT \
-                            -Dbearer=$token -e -X
-                    '''
+                    // Read stable revision from previous stage
+                    def stable_revision_number = readFile 'build.env'
+                    
+                    // Deploy using Maven
+                    sh "echo 'stable revision at stage deploy: ${stable_revision_number}'"
+                    sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=\$access_token"
                 }
             }
+            dependencies {
+                build('build')
+            }
+        }
+    }
+
+    post {
+        success {
+            // Sending Microsoft Teams Notifications about Pipeline/Job Success!
+            // office365ConnectorSend webhookUrl: MICROSOFT_TEAMS_WEBHOOK_URL, message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} completed successfully!", status: 'Success'
+        }
+        failure {
+            // Sending Microsoft Teams Notifications about Pipeline/Job Failure!
+            // office365ConnectorSend webhookUrl: MICROSOFT_TEAMS_WEBHOOK_URL, message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} failed!", status: 'Failure'
         }
     }
 }
