@@ -13,13 +13,13 @@ pipeline {
                 withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE')]) {
                     script {
                         // Install required dependencies
-                        sh 'apt-get update -qy'
-                        sh 'apt-get install -y curl jq maven npm gnupg'
+                        sh 'sudo apt-get update -qy'
+                        sh 'sudo apt-get install -y curl jq maven npm gnupg'
 
                         // Install Google Cloud SDK
                         sh 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -'
                         sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
-                        sh 'apt-get update && apt-get install -y google-cloud-sdk'
+                        sh 'sudo apt-get update && apt-get install -y google-cloud-sdk'
 
                         // Download secure files and execute revision1.sh
                         sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
