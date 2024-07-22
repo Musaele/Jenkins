@@ -17,7 +17,7 @@ pipeline {
                         sh 'sudo apt-get install -y curl jq maven npm gnupg'
 
                         // Install Google Cloud SDK
-                        sh 'curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -'
+                        sh 'sudo curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -'
                         sh 'echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list'
                         sh 'sudo apt-get update && apt-get install -y google-cloud-sdk'
 
