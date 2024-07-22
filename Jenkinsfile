@@ -11,7 +11,7 @@ pipeline {
         stage('build') {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE'), 
-                                string(credentialsId: 'auth_token', variable: 'AUTH_TOKEN')]) { // Assuming 'auth_token' is the ID for the required token
+                              //  string(credentialsId: 'auth_token', variable: 'AUTH_TOKEN')]) { // Assuming 'auth_token' is the ID for the required token
                     script {
                         // Install required dependencies
                         sh 'sudo apt-get update -qy'
