@@ -6,21 +6,6 @@ pipeline {
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
     }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                // Checkout the repository using HTTPS credentials
-                checkout([$class: 'GitSCM',
-                          branches: [[name: '*/main']],  // Use '*/main' for the 'main' branch
-                          userRemoteConfigs: [[
-                              credentialsId: 'Git_credentials',  // Use your Jenkins credential ID here
-                              url: 'https://github.com/Musaele/Jenkins_implementation.git'  // Your GitHub repository HTTPS URL
-                          ]]
-                ])
-            }
-        }
-
         stage('build') {
             steps {
                 withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_FILE')]) {
@@ -78,3 +63,4 @@ pipeline {
         }
     }
 }
+
