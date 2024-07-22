@@ -53,15 +53,4 @@ pipeline {
             }
         }
     }
-
-    post {
-        success {
-            // Sending Microsoft Teams Notifications about Pipeline/Job Success!
-            // office365ConnectorSend webhookUrl: MICROSOFT_TEAMS_WEBHOOK_URL, message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} completed successfully!", status: 'Success'
-        }
-        failure {
-            // Sending Microsoft Teams Notifications about Pipeline/Job Failure!
-            // office365ConnectorSend webhookUrl: MICROSOFT_TEAMS_WEBHOOK_URL, message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} failed!", status: 'Failure'
-        }
-    }
 }
