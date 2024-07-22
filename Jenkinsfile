@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        ORG = 'abacus-apigee-demo'
-        PROXY_NAME = 'test-call'
-        APIGEE_ENVIRONMENT = 'dev2'
+        ORG = 'abacus-apigee-demo'  // Replace with your values
+        PROXY_NAME = 'test-call'  // Replace with your values
+        APIGEE_ENVIRONMENT = 'dev2'  // Replace with your values
     }
 
     stages {
@@ -14,18 +14,17 @@ pipeline {
                     // Install required dependencies
                     sh 'apt-get update -qy && apt-get install -y curl jq maven npm gnupg'
 
-                    // Install Google Cloud SDK as needed (uncomment if required)
+                    // Optional: Install Google Cloud SDK if needed
                     // sh '''
                     //     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
                     //     echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
                     //     apt-get update && apt-get install -y google-cloud-sdk
                     // '''
 
-                    // Download secure files (assuming no authentication required)
-                    // Consider alternative secure download methods if needed (e.g., encrypted file download)
+                    // Download secure files (consider alternative secure download methods if required)
                     sh 'curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash'
 
-                    // Executing bash script to get access token & stable_revision_number (modify/replace as needed)
+                    // Replace with your script or commands to get access token and revision number
                     sh 'source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
                     // Access service account credentials securely using Jenkins credentials
@@ -57,7 +56,7 @@ pipeline {
                     // Read stable revision from previous stage
                     def stable_revision_number = readFile 'build.env'
 
-                    // Deploy using Maven
+                    // Deploy using Maven (replace with your deployment commands)
                     sh "echo 'Stable revision at stage deploy: ${stable_revision_number}'"
                     sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=\$access_token"
                 }
