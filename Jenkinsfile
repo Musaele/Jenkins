@@ -28,9 +28,7 @@ pipeline {
                     sh 'source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
                     // Access service account credentials securely using Jenkins credentials
-                    withCredentials([file: credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE_CONTENT']) 
-                    
-                    {
+                    withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE_CONTENT')]) {
                         sh '''
                             # Decode the base64 encoded service account JSON content
                             echo $SERVICE_ACCOUNT_FILE_CONTENT | base64 -d > service_account.json
@@ -42,25 +40,25 @@ pipeline {
                     writeFile file: 'build.env', text: "access_token=\$access_token\nstable_revision_number=\$stable_revision_number\n"
                 }
             }
-            artifacts {
-                dotenv 'build.env'
+            post {
+                success {
+                    archiveArtifacts artifacts: 'build.env', allowEmptyArchive: false
+                }
             }
         }
 
         stage('Deploy') {
-            needs {
-                success anyOf {
-                    build job: 'build-job-1' // Remove if single stage pipeline
-                }
-            }
             steps {
                 script {
                     // Read stable revision from previous stage
-                    def stable_revision_number = readFile 'build.env'
+                    def buildEnv = readFile 'build.env'
+                    def envVars = readProperties text: buildEnv
+                    def stable_revision_number = envVars['stable_revision_number']
+                    def access_token = envVars['access_token']
 
                     // Deploy using Maven (replace with your deployment commands)
                     sh "echo 'Stable revision at stage deploy: ${stable_revision_number}'"
-                    sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=\$access_token"
+                    sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=${access_token}"
                 }
             }
         }
