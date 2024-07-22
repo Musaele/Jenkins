@@ -28,7 +28,9 @@ pipeline {
                     sh 'source ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
                     // Access service account credentials securely using Jenkins credentials
-                    withCredentials([file: credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE_CONTENT']) {
+                    withCredentials([file: credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE_CONTENT']) 
+                    
+                    {
                         sh '''
                             # Decode the base64 encoded service account JSON content
                             echo $SERVICE_ACCOUNT_FILE_CONTENT | base64 -d > service_account.json
