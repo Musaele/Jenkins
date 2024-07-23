@@ -27,8 +27,8 @@ pipeline {
           // Download secure files within the temporary directory
           sh 'sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash -c "cat > /tmp/download/installer"'
           sh'pwd'
-          sh 'mkdir -p .secure_files'
-          sh 'ls -a'
+          sh 'mkdir -p .secure_files && withCredentials([file(credentialsId: "service_file", variable: "SECRET_FILE")]) { cat $SECRET_FILE > .secure_files/service-account.json }'
+          sh 'cat service-account.json'
           sh 'sudo chmod +x revision1.sh'
           // Replace with your script or commands to get access token and revision number
         
