@@ -52,6 +52,14 @@ pipeline {
              }
             }
         }
+script {
+    def command = "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token} -Dstable_revision_number=${stable_revision_number}"
+    echo "Command: ${command}"
+    echo "Maven profile: ${APIGEE_ENVIRONMENT}"
+    echo "Organization: ${ORG}"
+    echo "Access token: ${access_token}" // Mask the access token for security
+    echo "Stable revision number: ${stable_revision_number}"
+}
 
         stage('Deploy') {
             steps {
