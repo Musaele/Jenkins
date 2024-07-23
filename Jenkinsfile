@@ -33,6 +33,9 @@ pipeline {
                         sh 'mkdir -p .secure_files && cp "$SECRET_FILE" .secure_files/service-account.json'
                     }
 
+                    // Change permissions of the .secure_files directory
+                    sh 'sudo chmod -R 777 .secure_files'
+
                     sh 'sudo chmod +x revision1.sh'
 
                     // Execute the script with necessary parameters
