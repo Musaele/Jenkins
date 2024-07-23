@@ -38,11 +38,10 @@ pipeline {
 
           // Access service account credentials securely using Jenkins credentials
           withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE_CONTENT')]) {
-            sh '''
-              # Decode the base64 encoded service account JSON content
-              echo $SERVICE_ACCOUNT_FILE_CONTENT | base64 -d > service_account.json
-              export GOOGLE_APPLICATION_ CREDENTIALS=service_account.json
-            '''
+          sh '''
+       echo "$SERVICE_ACCOUNT_FILE_CONTENT" > service_account.json
+       export GOOGLE_APPLICATION_CREDENTIALS=service_account.json
+      '''
           }
 
           // Write environment variables to build.env artifact
