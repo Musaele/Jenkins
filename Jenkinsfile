@@ -30,7 +30,7 @@ pipeline {
                     }
 
                     // Ensure the secure files directory has appropriate permissions
-                    sh 'chmod -R 777 .secure_files'
+                    sh 'chmod +rwx .secure_files'
                 }
             }
         }
