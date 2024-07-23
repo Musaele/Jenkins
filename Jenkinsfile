@@ -63,8 +63,8 @@ pipeline {
                     def access_token = envVars['access_token']
 
                     // Debugging log
-                    cat "Stable revision number: ${stable_revision_number}"
-                    cat "Access token: ${access_token}"
+                    echo "Stable revision number: ${stable_revision_number}"
+                    echo "Access token: ${access_token}"
 
                     // Deploy using Maven (replace with your deployment commands)
                     sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token} -Dstable_revision_number=${stable_revision_number}"
