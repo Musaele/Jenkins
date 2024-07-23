@@ -36,7 +36,7 @@ echo "Access Token: $access_token"
 echo "access_token=$access_token" >> $GITHUB_ENV
 
 # Set output for GitHub Actions
-# echo "::set-output name=access_token::$access_token"
+echo "::set-output name=access_token::$access_token"
 
 # Get stable_revision_number using access_token
 revision_info=$(curl -H "Authorization: Bearer $access_token" "https://apigee.googleapis.com/v1/organizations/$ORG/environments/$ENV/apis/$ProxyName/deployments")
