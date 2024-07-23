@@ -45,12 +45,12 @@ pipeline {
                     sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
                 }
             }
-            post {
-                success {
+            // post {
+               // success {
                     // Archive the build.env file from the correct path
-                    archiveArtifacts artifacts: '.secure_files/build.env', allowEmptyArchive: false
-                }
-            }
+                   // archiveArtifacts artifacts: '.secure_files/build.env', allowEmptyArchive: false
+            // }
+           // }
         }
 
         stage('Deploy') {
