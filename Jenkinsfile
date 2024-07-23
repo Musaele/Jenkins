@@ -30,7 +30,7 @@ pipeline {
           withCredentials([file(credentialsId: "service_file", variable: "SECRET_FILE")]) {
     sh 'mkdir -p .secure_files && cat "$SECRET_FILE" > .secure_files/service-account.json'
 }
-          sh 'cat service-account.json'
+          
           sh 'sudo chmod +x revision1.sh'
           // Replace with your script or commands to get access token and revision number
         
