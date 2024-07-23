@@ -8,41 +8,41 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
+        stage('Prepare Environment') {
             steps {
                 script {
                     // Install required dependencies
-                    sh 'sudo apt-get update -qy && sudo apt-get install -y curl jq maven npm gnupg'
+                    sh 'sudo apt-get update -qy && sudo apt-get install -y curl jq maven gnupg'
 
                     // Install Google Cloud SDK if needed
                     sh '''
-                        sudo curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
                         echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
                         sudo apt-get update && sudo apt-get install -y google-cloud-sdk
                     '''
 
-                    // Create a temporary directory for download
-                    sh 'mkdir -p /tmp/download'
+                    // Prepare secure files directory
+                    sh 'mkdir -p .secure_files'
 
-                    // Download secure files within the temporary directory
-                    sh '''
-                        sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash -c "cat > /tmp/download/installer"
-                    '''
-
+                    // Get the service account file from Jenkins credentials
                     withCredentials([file(credentialsId: "service_file", variable: "SECRET_FILE")]) {
-                        sh 'mkdir -p .secure_files && cp "$SECRET_FILE" .secure_files/service-account.json'
+                        sh 'cp "$SECRET_FILE" .secure_files/service-account.json'
                     }
 
-                    // Change permissions of the .secure_files directory
-                    sh 'sudo chmod -R 777 .secure_files'
+                    // Ensure the secure files directory has appropriate permissions
+                    sh 'chmod -R 777 .secure_files'
+                }
+            }
+        }
 
-                    sh 'sudo chmod +x revision1.sh'
+        stage('Get Access Token and Stable Revision Number') {
+            steps {
+                script {
+                    // Ensure revision1.sh is executable
+                    sh 'chmod +x revision1.sh'
 
                     // Execute the script with necessary parameters
-                    sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
-
-                    // Write environment variables to build.env artifact within .secure_files directory
-                    writeFile file: '.secure_files/build.env', text: "access_token=\$access_token\nstable_revision_number=\$stable_revision_number\n"
+                    sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
                 }
             }
             post {
@@ -67,7 +67,7 @@ pipeline {
                     echo "Access token: ${access_token}"
 
                     // Deploy using Maven (replace with your deployment commands)
-                    sh "mvn clean install -f ${env.WORKSPACE}/${PROXY_NAME}/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token}"
+                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token} -Dstable_revision_number=${stable_revision_number}"
                 }
             }
         }
