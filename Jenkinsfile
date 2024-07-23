@@ -37,11 +37,15 @@ pipeline {
 
                     // Execute the script with necessary parameters
                     sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+
+                    // Write environment variables to build.env artifact within .secure_files directory
+                    writeFile file: '.secure_files/build.env', text: "access_token=\$access_token\nstable_revision_number=\$stable_revision_number\n"
                 }
             }
             post {
                 success {
-                    archiveArtifacts artifacts: 'build.env', allowEmptyArchive: false
+                    // Archive the build.env file from the correct path
+                    archiveArtifacts artifacts: '.secure_files/build.env', allowEmptyArchive: false
                 }
             }
         }
@@ -50,7 +54,7 @@ pipeline {
             steps {
                 script {
                     // Read stable revision and access token from previous stage
-                    def buildEnv = readFile 'build.env'
+                    def buildEnv = readFile '.secure_files/build.env'
                     def envVars = readProperties text: buildEnv
                     def stable_revision_number = envVars['stable_revision_number']
                     def access_token = envVars['access_token']
