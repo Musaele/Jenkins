@@ -37,12 +37,9 @@ pipeline {
            sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
           // Access service account credentials securely using Jenkins credentials
-          withCredentials([file(credentialsId: 'service_file', variable: 'SERVICE_ACCOUNT_FILE_CONTENT')]) {
-          sh '''
-       echo "$SERVICE_ACCOUNT_FILE_CONTENT" > service_account.json
-       export GOOGLE_APPLICATION_CREDENTIALS=service_account.json
-      '''
-          }
+          withCredentials([file(credentialsId: "service_file")]) {
+  sh 'cat "$SERVICE_ACCOUNT_FILE_CONTENT" > .secure_files/service-account.json'
+}
 
           // Write environment variables to build.env artifact
           writeFile file: 'build.env', text: "access_token=\$access_token\nstable_revision_number=\$stable_revision_number\n"
