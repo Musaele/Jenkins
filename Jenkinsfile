@@ -1,71 +1,68 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    ORG = 'abacus-apigee-demo' // Replace with your values
-    PROXY_NAME = 'test-call' // Replace with your values
-    APIGEE_ENVIRONMENT = 'dev2' // Replace with your values
-  }
-
-  stages {
-    stage('Build') {
-      steps {
-        script {
-          // Install required dependencies
-          sh 'sudo apt-get update -qy && sudo apt-get install -y curl jq maven npm gnupg'
-
-          // Install Google Cloud SDK if needed
-          sh '''
-            sudo curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-            echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-            sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-          '''
-
-          // Create a temporary directory for download
-          sh 'mkdir -p /tmp/download'
-
-          // Download secure files within the temporary directory
-          sh 'sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash -c "cat > /tmp/download/installer"'
-          sh'pwd'
-          withCredentials([file(credentialsId: "service_file", variable: "SECRET_FILE")]) {
-    sh 'mkdir -p .secure_files && cat "$SECRET_FILE" > .secure_files/service-account.json'
-}
-          
-          sh 'sudo chmod +x revision1.sh'
-          // Replace with your script or commands to get access token and revision number
-        
-           sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
-
-          // Access service account credentials securely using Jenkins credentials
-          withCredentials([file(credentialsId: "service_file")]) {
-  sh 'cat "$SERVICE_ACCOUNT_FILE_CONTENT" > .secure_files/service-account.json'
-}
-
-          // Write environment variables to build.env artifact
-          writeFile file: 'build.env', text: "access_token=\$access_token\nstable_revision_number=\$stable_revision_number\n"
-        }
-      }
-      post {
-        success {
-          archiveArtifacts artifacts: 'build.env', allowEmptyArchive: false
-        }
-      }
+    environment {
+        ORG = 'abacus-apigee-demo'
+        PROXY_NAME = 'test-call'
+        APIGEE_ENVIRONMENT = 'dev2'
     }
 
-    stage('Deploy') {
-      steps {
-        script {
-          // Read stable revision from previous stage
-          def buildEnv = readFile 'build.env'
-          def envVars = readProperties text: buildEnv
-          def stable_revision_number = envVars['stable_revision_number']
-          def access_token = envVars['access_token']
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    // Install required dependencies
+                    sh 'sudo apt-get update -qy && sudo apt-get install -y curl jq maven npm gnupg'
 
-          // Deploy using Maven (replace with your deployment commands)
-          sh "echo 'Stable revision at stage deploy: ${stable_revision_number}'"
-          sh "mvn clean install -f \$CI_PROJECT_DIR/\$PROXY_NAME/pom.xml -P\$APIGEE_ENVIRONMENT -Dorg=\$ORG -Dbearer=${access_token}"
+                    // Install Google Cloud SDK if needed
+                    sh '''
+                        sudo curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+                        echo "deb https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+                        sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+                    '''
+
+                    // Create a temporary directory for download
+                    sh 'mkdir -p /tmp/download'
+
+                    // Download secure files within the temporary directory
+                    sh '''
+                        sudo curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | sudo bash -c "cat > /tmp/download/installer"
+                    '''
+
+                    withCredentials([file(credentialsId: "service_file", variable: "SECRET_FILE")]) {
+                        sh 'mkdir -p .secure_files && cp "$SECRET_FILE" .secure_files/service-account.json'
+                    }
+
+                    sh 'sudo chmod +x revision1.sh'
+
+                    // Execute the script with necessary parameters
+                    sh 'sudo ./revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'build.env', allowEmptyArchive: false
+                }
+            }
         }
-      }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Read stable revision and access token from previous stage
+                    def buildEnv = readFile 'build.env'
+                    def envVars = readProperties text: buildEnv
+                    def stable_revision_number = envVars['stable_revision_number']
+                    def access_token = envVars['access_token']
+
+                    // Debugging log
+                    echo "Stable revision number: ${stable_revision_number}"
+                    echo "Access token: ${access_token}"
+
+                    // Deploy using Maven (replace with your deployment commands)
+                    sh "mvn clean install -f ${env.WORKSPACE}/${PROXY_NAME}/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token}"
+                }
+            }
+        }
     }
-  }
 }
