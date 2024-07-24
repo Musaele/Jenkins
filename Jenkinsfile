@@ -79,9 +79,24 @@ pipeline {
             steps {
                 script {
                     // Use the environment variables
-                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${env.ACCESS_TOKEN} -Dstable_revision_number=${env.STABLE_REVISION}"
+                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${ACCESS_TOKEN} -Dstable_revision_number=${STABLE_REVISION}"
                 }
             }
+        }
+    }
+    
+    post {
+        success {
+            // Sending MS Teams Notifications about Pipeline/Job Success!
+            office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
+            message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} completed successfully!",
+            status: 'Success'
+        }
+        failure {
+            // Sending MS Teams Notifications about Pipeline/Job Failure!
+            office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
+            message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} failed!",
+            status: 'Failure'
         }
     }
 }
