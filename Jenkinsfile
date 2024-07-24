@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.1'  // Replace with your configured Maven version in Jenkins
-        nodejs 'NodeJS 14.17.0'  // Replace with your configured NodeJS version in Jenkins
+        maven 'M3'  // Using the configured Maven name
+        nodejs 'nodejs-update'  // Using the configured NodeJS name
     }
 
     environment {
