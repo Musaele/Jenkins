@@ -51,6 +51,9 @@ pipeline {
                     // Execute the script with necessary parameters
                     sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
+                    // Debug: Print the content of build.env file
+                    sh 'cat .secure_files/build.env'
+
                     // Read the build.env file
                     def buildEnv = readFile '.secure_files/build.env'
                     def envVars = readProperties text: buildEnv
