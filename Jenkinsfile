@@ -5,6 +5,8 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
+        stable_revision = '' // Add this variable
+        access_token = ''    // Add this variable
     }
 
     stages {
@@ -43,30 +45,33 @@ pipeline {
 
                     // Execute the script with necessary parameters
                     sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
+
+                    // Read the build.env file
+                    def buildEnv = readFile '.secure_files/build.env'
+                    def envVars = readProperties text: buildEnv
+
+                    // Set the Jenkins environment variables
+                    env.stable_revision = envVars['stable_revision_number']
+                    env.access_token = envVars['access_token']
+
+                    // Debugging log
+                    echo "Stable revision number: ${env.stable_revision}"
+                    echo "Access token: ${env.access_token}"
                 }
             }
-             post {
+            post {
                 success {
                     // Archive the build.env file from the correct path
                     archiveArtifacts artifacts: '.secure_files/build.env', allowEmptyArchive: false
-             }
+                }
             }
         }
+
         stage('Deploy') {
             steps {
                 script {
-                    // Read stable revision and access token from previous stage
-                    def buildEnv = readFile '.secure_files/build.env'
-                    def envVars = readProperties text: buildEnv
-                    def stable_revision_number = envVars['stable_revision_number']
-                    def access_token = envVars['access_token']
-
-                    // Debugging log
-                    echo "Stable revision number: ${stable_revision_number}"
-                    echo "Access token: ${access_token}"
-
-                    // Deploy using Maven (replace with your deployment commands)
-                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token} -Dstable_revision_number=${stable_revision_number}"
+                    // Use the environment variables
+                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${access_token} -Dstable_revision_number=${stable_revision}"
                 }
             }
         }
