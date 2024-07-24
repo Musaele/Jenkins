@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven 3.8.1'  // Replace with your configured Maven version in Jenkins
+        nodejs 'NodeJS 14.17.0'  // Replace with your configured NodeJS version in Jenkins
+    }
+
     environment {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
@@ -12,7 +17,7 @@ pipeline {
             steps {
                 script {
                     // Install required dependencies
-                    sh 'sudo apt-get update -qy && sudo apt-get install -y curl jq maven gnupg'
+                    sh 'sudo apt-get update -qy && sudo apt-get install -y curl jq gnupg'
 
                     // Install Google Cloud SDK if needed
                     sh '''
