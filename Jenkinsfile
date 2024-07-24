@@ -10,8 +10,6 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
-        STABLE_REVISION = ''  // Declare but leave empty initially
-        ACCESS_TOKEN = ''     // Declare but leave empty initially
     }
 
     stages {
@@ -51,20 +49,17 @@ pipeline {
                     // Execute the script with necessary parameters
                     sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
-                    // Debug: Print the content of build.env file
-                    sh 'cat .secure_files/build.env'
-
                     // Read the build.env file
                     def buildEnv = readFile '.secure_files/build.env'
                     def envVars = readProperties text: buildEnv
 
                     // Set the Jenkins environment variables
-                    env.STABLE_REVISION = envVars['stable_revision_number']
-                    env.ACCESS_TOKEN = envVars['access_token']
+                    env.stable_revision = envVars['stable_revision_number']
+                    env.access_token = envVars['access_token']
 
                     // Debugging log
-                    echo "Stable revision number: ${env.STABLE_REVISION}"
-                    echo "Access token: ${env.ACCESS_TOKEN}"
+                    echo "Stable revision number: ${env.stable_revision}"
+                    echo "Access token: ${env.access_token}"
                 }
             }
             post {
@@ -79,24 +74,10 @@ pipeline {
             steps {
                 script {
                     // Use the environment variables
-                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${ACCESS_TOKEN} -Dstable_revision_number=${STABLE_REVISION}"
+                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${env.access_token} -Dstable_revision_number=${env.stable_revision}"
                 }
             }
         }
     }
-    
-    post {
-        success {
-            // Sending MS Teams Notifications about Pipeline/Job Success!
-            office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
-            message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} completed successfully!",
-            status: 'Success'
-        }
-        failure {
-            // Sending MS Teams Notifications about Pipeline/Job Failure!
-            office365ConnectorSend webhookUrl: 'https://safaricomo365.webhook.office.com/webhookb2/1f198d4b-1b75-49e8-8032-d4441104de46@19a4db07-607d-475f-a518-0e3b699ac7d0/JenkinsCI/57b04be56f004ad8936b7859ab072e67/dfc7bf82-7b0d-4e0a-b2ff-9b9d4eee8548',
-            message: "Pipeline/Job: ${env.JOB_NAME} Build Number: ${env.BUILD_NUMBER} failed!",
-            status: 'Failure'
-        }
-    }
 }
+
