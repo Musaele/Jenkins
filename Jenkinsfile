@@ -10,6 +10,8 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
+        STABLE_REVISION = ''  // Declare but leave empty initially
+        ACCESS_TOKEN = ''     // Declare but leave empty initially
     }
 
     stages {
@@ -54,12 +56,12 @@ pipeline {
                     def envVars = readProperties text: buildEnv
 
                     // Set the Jenkins environment variables
-                    env.stable_revision = envVars['stable_revision_number']
-                    env.access_token = envVars['access_token']
+                    env.STABLE_REVISION = envVars['stable_revision_number']
+                    env.ACCESS_TOKEN = envVars['access_token']
 
                     // Debugging log
-                    echo "Stable revision number: ${env.stable_revision}"
-                    echo "Access token: ${env.access_token}"
+                    echo "Stable revision number: ${env.STABLE_REVISION}"
+                    echo "Access token: ${env.ACCESS_TOKEN}"
                 }
             }
             post {
@@ -74,7 +76,7 @@ pipeline {
             steps {
                 script {
                     // Use the environment variables
-                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${env.access_token} -Dstable_revision_number=${env.stable_revision}"
+                    sh "mvn clean install -f /var/lib/jenkins/workspace/Jenkins/test-call/pom.xml -P${APIGEE_ENVIRONMENT} -Dorg=${ORG} -Dbearer=${env.ACCESS_TOKEN} -Dstable_revision_number=${env.STABLE_REVISION}"
                 }
             }
         }
