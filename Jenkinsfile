@@ -10,6 +10,7 @@ pipeline {
         ORG = 'abacus-apigee-demo'
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
+        NEWMAN_TARGET_URL = 'NoTargetProxy_GET_Req_Pass.postman_collection.json' // Ensure this file exists in your project directory
     }
 
     stages {
@@ -46,6 +47,14 @@ pipeline {
                     // Ensure revision1.sh is executable
                     sh 'chmod +x revision1.sh'
 
+                    // Extract client_id and private_key from the service account file
+                    def serviceAccount = readJSON file: '.secure_files/service-account.json'
+                    def client_id = serviceAccount.client_id
+                    def private_key = serviceAccount.private_key.replaceAll("\\n", "\\\\n")
+
+                    // Encode client_id and private_key to base64
+                    def base64encoded = "${client_id}:${private_key}".bytes.encodeBase64().toString()
+
                     // Execute the script with necessary parameters
                     sh './revision1.sh $ORG $PROXY_NAME $APIGEE_ENVIRONMENT'
 
@@ -56,10 +65,12 @@ pipeline {
                     // Set the Jenkins environment variables
                     env.stable_revision = envVars['stable_revision_number']
                     env.access_token = envVars['access_token']
+                    env.base64encoded = base64encoded
 
                     // Debugging log
                     echo "Stable revision number: ${env.stable_revision}"
                     echo "Access token: ${env.access_token}"
+                    echo "Base64 encoded value: ${env.base64encoded}"
                 }
             }
             post {
@@ -86,7 +97,7 @@ pipeline {
                     sh 'chmod +x integration.sh'
 
                     // Execute integration tests
-                    sh "bash ./integration.sh $ORG $base64encoded $NEWMAN_TARGET_URL"
+                    sh "bash ./integration.sh $ORG ${env.base64encoded} ${NEWMAN_TARGET_URL}"
                 }
             }
             post {
