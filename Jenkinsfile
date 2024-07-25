@@ -78,6 +78,33 @@ pipeline {
                 }
             }
         }
+
+        stage('Integration Test') {
+            steps {
+                script {
+                    // Make integration.sh executable
+                    sh 'chmod +x integration.sh'
+
+                    // Execute integration tests
+                    sh "bash ./integration.sh $ORG $base64encoded $NEWMAN_TARGET_URL"
+                }
+            }
+            post {
+                success {
+                    // Archive the integration test results
+                    archiveArtifacts artifacts: 'junitReport.xml', allowEmptyArchive: true
+
+                    // Publish test results
+                    junit 'junitReport.xml'
+                }
+                failure {
+                    // Archive the integration test results even if the tests fail
+                    archiveArtifacts artifacts: 'junitReport.xml', allowEmptyArchive: true
+
+                    // Mark the build as unstable if the integration tests fail
+                    unstable('Integration tests failed')
+                }
+            }
+        }
     }
 }
-
