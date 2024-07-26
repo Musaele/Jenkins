@@ -61,7 +61,6 @@ pipeline {
             }
         }
 
-        stages {
         stage('Integration') {
             steps {
                 script {
