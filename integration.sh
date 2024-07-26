@@ -1,19 +1,25 @@
 #!/bin/bash
 
 ORG=$1
-base64encoded=$2
+SECRET_FILE=$2
 NEWMAN_TARGET_URL=$3
 
-# Fetch client ID
-client_id_response=$(curl -s -H "Authorization: Basic $base64encoded" "https://api.enterprise.apigee.com/v1/organizations/$ORG/apiproducts/Cicd-Prod-Product?query=list&entity=keys")
-client_id=$(echo "$client_id_response" | jq -r '.[0]')
+# Read client ID and client secret from the secret file
+client_id=$(grep -E "^client_id=" "$SECRET_FILE" | cut -d'=' -f2)
+client_secret=$(grep -E "^client_secret=" "$SECRET_FILE" | cut -d'=' -f2)
+
+# Check if the client ID and client secret are not empty
+if [[ -z "$client_id" ]]; then
+  echo "Error: client_id is empty"
+  exit 1
+fi
+
+if [[ -z "$client_secret" ]]; then
+  echo "Error: client_secret is empty"
+  exit 1
+fi
 
 echo "client_id at script: '$client_id'"
-
-# Fetch client secret
-client_secret_response=$(curl -s -H "Authorization: Basic $base64encoded" "https://api.enterprise.apigee.com/v1/organizations/$ORG/developers/hr@api.com/apps/hrapp/keys/$client_id")
-client_secret=$(echo "$client_secret_response" | jq -r '.consumerSecret')
-
 echo "client_secret at script: '$client_secret'"
 
 # Install newman
