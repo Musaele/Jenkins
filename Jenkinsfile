@@ -89,6 +89,11 @@ pipeline {
                     // Encode client_id and client_secret to base64 using base64 command
                     def base64encoded = sh(script: "echo -n '${client_id}:${client_secret}' | base64", returnStdout: true).trim()
 
+                    // Ensure the Postman collection file exists
+                    if (!fileExists(env.NEWMAN_TARGET_URL)) {
+                        error "Postman collection file ${env.NEWMAN_TARGET_URL} not found"
+                    }
+
                     // Execute integration tests
                     sh "bash ./integration.sh $ORG ${base64encoded} ${NEWMAN_TARGET_URL}"
                 }
