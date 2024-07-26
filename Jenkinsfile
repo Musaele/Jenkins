@@ -11,6 +11,8 @@ pipeline {
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
         NEWMAN_TARGET_URL = 'NoTargetProxy_GET_Req_Pass.postman_collection.json'
+        SECRET_FILE_PATH = '/var/lib/jenkins/workspace/Jenkins/.secure_files'
+        TARGET_FILE = 'NoTargetProxy_GET_Req_Pass.postman_collection.json' // Adjust if the target file is in a different location
     }
 
     stages {
@@ -59,28 +61,34 @@ pipeline {
             }
         }
 
-        stage('Integration Test') {
+        stages {
+        stage('Integration') {
             steps {
                 script {
-                    sh 'chmod +rwx integration.sh'
-                    def serviceAccount = readJSON file: '.secure_files/service-account.json'
-                    def client_id = serviceAccount.client_id
-                    def client_secret = serviceAccount.private_key
-                    def base64encoded = sh(script: "echo -n '${client_id}:${client_secret}' | base64 | tr -d '\n'", returnStdout: true).trim()
-                    if (!fileExists(env.NEWMAN_TARGET_URL)) {
-                        error "Postman collection file ${env.NEWMAN_TARGET_URL} not found"
+                    def secretFile = env.SECRET_FILE_PATH
+                    def targetFile = env.TARGET_FILE
+
+                    // Check if the secret file exists
+                    if (!fileExists(secretFile)) {
+                        error "Secret file does not exist at ${secretFile}"
                     }
-                    sh "bash ./integration.sh $ORG ${base64encoded} ${env.NEWMAN_TARGET_URL}"
+
+                    // Run the integration script with the path to the secret file and target file
+                    sh "bash ./integration.sh abacus-apigee-demo ${secretFile} ${targetFile}"
                 }
             }
             post {
-                success {
+                always {
+                    // Archive artifacts or perform any other post-build actions
                     archiveArtifacts artifacts: 'junitReport.xml', allowEmptyArchive: true
-                    junit 'junitReport.xml'
+                }
+                unstable {
+                    // Mark the build as unstable if needed
+                    unstable "Integration tests failed"
                 }
                 failure {
-                    archiveArtifacts artifacts: 'junitReport.xml', allowEmptyArchive: true
-                    unstable('Integration tests failed')
+                    // Handle failure
+                    error "Integration stage failed"
                 }
             }
         }
