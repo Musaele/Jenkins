@@ -62,7 +62,7 @@ pipeline {
         stage('Integration Test') {
             steps {
                 script {
-                    sh 'chmod +x integration.sh'
+                    sh 'chmod +rwx integration.sh'
                     def serviceAccount = readJSON file: '.secure_files/service-account.json'
                     def client_id = serviceAccount.client_id
                     def client_secret = serviceAccount.private_key
