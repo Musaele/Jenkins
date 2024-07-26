@@ -11,8 +11,8 @@ pipeline {
         PROXY_NAME = 'test-call'
         APIGEE_ENVIRONMENT = 'dev2'
         NEWMAN_TARGET_URL = 'NoTargetProxy_GET_Req_Pass.postman_collection.json'
-        SECRET_FILE_PATH = '/var/lib/jenkins/workspace/Jenkins/.secure_files'
-        TARGET_FILE = 'NoTargetProxy_GET_Req_Pass.postman_collection.json' // Adjust if the target file is in a different location
+        SECRET_FILE_PATH = '/var/lib/jenkins/workspace/Jenkins/.secure_files/service-account.json'
+        TARGET_FILE = 'NoTargetProxy_GET_Req_Pass.postman_collection.json'
     }
 
     stages {
@@ -70,6 +70,11 @@ pipeline {
                     // Check if the secret file exists
                     if (!fileExists(secretFile)) {
                         error "Secret file does not exist at ${secretFile}"
+                    }
+
+                    // Check if the target file exists
+                    if (!fileExists(targetFile)) {
+                        error "Target file does not exist at ${targetFile}"
                     }
 
                     // Run the integration script with the path to the secret file and target file
