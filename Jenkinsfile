@@ -66,7 +66,7 @@ pipeline {
                     def serviceAccount = readJSON file: '.secure_files/service-account.json'
                     def client_id = serviceAccount.client_id
                     def client_secret = serviceAccount.private_key
-                    def base64encoded = sh(script: "echo -n '${client_id}:${client_secret}' | base64", returnStdout: true).trim()
+                    def base64encoded = sh(script: "echo -n '${client_id}:${client_secret}' | base64 | tr -d '\n'", returnStdout: true).trim()
                     if (!fileExists(env.NEWMAN_TARGET_URL)) {
                         error "Postman collection file ${env.NEWMAN_TARGET_URL} not found"
                     }
